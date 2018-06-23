@@ -1,0 +1,139 @@
+<html>
+<head>
+<title>Tufts Comp 181 Tiger Reference</title>
+<link rel=stylesheet href="projects.css" type="text/css">
+</head>
+
+<body>
+
+<br>
+
+<h1>Tiger Programming Language</h1>
+
+<p>This semester we will implement a compiler for Andrew
+Appel's Tiger programming language. This language is the source
+language is his series of books, "Modern Compiler Implementation in ...". We
+will not be following the book, though. We are just using the syntax and
+semantics of the language as a guide.</p>
+
+<h2>Language Syntax</h2>
+
+<h3>Lexical elements</h3>
+
+<p>An <b>identifier</b> is a sequence of letters, digits, and underscores that
+starts with a letter. Case is significant.</p>
+
+<p><b>Whitespace</b> (spaces, tabs, newlines, returns, and formfeeds) may appear
+anywhere between tokens and is ignored.</p>
+
+<p>A <b>comment</b> starts with <lit>/*</lit> and ends with <lit>*/</lit>
+(like C). Comments can be nested.</p>
+
+<p>An <b>integer literal</b> is a sequence of one or more decimal digits. There
+are no negative integer literals -- negative numbers are specified by applying
+unary minus to a positive literal.</p>
+
+<p>A <b>string literal</b> is a sequence of zero or more printable characters,
+spaces, or escape sequences surrounded by double quotes. Each escape sequence
+starts with a backslash and stands for some sequence of special characters:</p>
+
+<table>
+<tr><td width="10%"><lit>\n</lit></td><td>Newline</td></tr>
+<tr><td><lit>\t</lit></td><td>Tab</td></tr>
+<tr><td><lit>\"</lit></td><td>Double quote</td></tr>
+<tr><td><lit>\\</lit></td><td>Backslash</td></tr>
+<tr><td><lit>\<i>ddd</i></lit></td><td>The character with ASCII code <i>ddd</i> (three decimal digits)</td></tr>
+<tr><td><lit>\...\</lit></td><td>Any sequence of whitespace characters enclosed in backslashes is ignored. This allows string literals to span multiple lines by ending on one line and restarting on the following line with backslashes</td></tr>
+</table>
+
+<p><b>Reserved words</b> in the language are: <lit>array break do else end for
+function if in let nil of then to type var while</lit>.</p>
+
+<p><b>Delimiters and operators</b> consist of the following one or two-character
+sequences: <lit>( ) [ ] { } : ; , . + - * / = <> < <= > >= &amp; |
+:=</lit></p>
+
+<h3>Grammatical syntax</h3>
+
+<p>A Tiger program consists of a single expression. The <lit>let</lit>
+construct allows a program to include multiple functions that call
+eachother.</p>
+
+<p>In the grammar below, we use the following conventions. We use colors/fonts
+for <nt>non-terminals</nt>, <tok>token classes</tok> (like identifiers),
+and <lit>keywords and delimiters</lit>. The BNF operators
+are <bnf>&rarr;</bnf>, <bnf>|</bnf>, <bnf>*</bnf>, <bnf>+</bnf>, and <bnf>[
+]</bnf> (to denote optional parts). The <bnf>*</bnf> operator has a special
+notation that can include a delimiter character. For
+example, <nt>exp</nt><bnf>*</bnf><sup>;</sup> denotes zero or more expressions
+separated by commas.</p>
+
+<p><b>Overall program structure:</b></p>
+
+<table>
+<tr><td><nt>program</nt></td><td><bnf>&rarr;</bnf></td><td><nt>exp</nt></td></tr>
+<tr><td><nt>exp</nt></td><td><bnf>&rarr;</bnf></td><td><nt>lvalue</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><lit>nil</lit></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><tok>intlit</tok></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><tok>stringlit</tok></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>sequence</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>negation</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>funcall</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>infix</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>arrCreate</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>recCreate</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>assign</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>ifthenelse</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>ifthen</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>while</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>for</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><lit>break</lit></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>let</nt></td></tr>
+</table>
+
+<p><b>Kinds of expresions:</b></p>
+
+<table>
+<tr><td><nt>sequence</nt></td><td><bnf>&rarr;</bnf></td><td><lit>(</lit> <nt>exp</nt> <bnf>*</bnf><sup>;</sup> <lit>)</lit></td></tr>
+<tr><td><nt>negation</nt></td><td><bnf>&rarr;</bnf></td><td><lit>-</lit> <nt>exp</nt></td></tr>
+<tr><td><nt>funcall</nt></td><td><bnf>&rarr;</bnf></td><td><tok>id</tok> <lit>(</lit> <nt>exp</nt> <bnf>*</bnf><sup>,</sup> <lit>)</lit></td></tr>
+<tr><td><nt>infix</nt></td><td><bnf>&rarr;</bnf></td><td><nt>exp</nt> <tok>infixop</tok> <nt>exp</nt></td></tr>
+<tr><td><nt>arrCreate</nt></td><td><bnf>&rarr;</bnf></td><td><tok>typid</tok> <lit>[</lit> <nt>exp</nt> <lit>] of </lit> <nt>exp</nt></td></tr>
+<tr><td><nt>recCreate</nt></td><td><bnf>&rarr;</bnf></td><td><tok>typid</tok> <lit>{</lit> <nt>field</nt> <bnf>*</bnf><sup>,</sup> <lit>}</lit></td></tr>
+<tr><td><nt>field</nt></td><td><bnf>&rarr;</bnf></td><td><tok>id</tok> <lit>=</lit> <nt>exp</nt></td></tr>
+<tr><td><nt>assign</nt></td><td><bnf>&rarr;</bnf></td><td><nt>lvalue</nt> <lit>:=</lit> <nt>exp</nt></td></tr>
+<tr><td><nt>ifthenelse</nt></td><td><bnf>&rarr;</bnf></td><td><lit>if</lit> <nt>exp</nt> <lit>then</lit> <nt>exp</nt> <bnf>[</bnf> <lit>else</lit> <nt>exp</nt> <bnf>]</bnf></td></tr>
+<tr><td><nt>while</nt></td><td><bnf>&rarr;</bnf></td><td><lit>while</lit> <nt>exp</nt> <lit>do</lit> <nt>exp</nt></td></tr>
+<tr><td><nt>for</nt></td><td><bnf>&rarr;</bnf></td><td><lit>for</lit> <tok>id</tok> <lit>:=</lit> <nt>exp</nt> <lit>to</lit> <nt>exp</nt> <lit>do</lit> <nt>exp</nt></td></tr>
+<tr><td><nt>let</nt></td><td><bnf>&rarr;</bnf></td><td><lit>let</lit> <nt>dec</nt><sup><bnf>+</bnf></sup> <lit>in</lit> <nt>exp</nt> <bnf>*</bnf><sup>;</sup> <lit>end</lit></td></tr>
+<tr><td><nt>lvalue</nt></td><td><bnf>&rarr;</bnf></td><td><tok>id</tok></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>subscript</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>fieldexp</nt></td></tr>
+<tr><td><nt>subscript</nt></td><td><bnf>&rarr;</bnf></td><td><nt>lvalue</nt> <lit>[</lit> <nt>exp</nt> <lit>]</lit></td></tr>
+<tr><td><nt>fieldexp</nt></td><td><bnf>&rarr;</bnf></td><td><nt>lvalue</nt> <lit>.</lit> <tok>id</tok></td></tr>
+</table>
+
+<p><b>Declarations and types:</b></p>
+
+<table>
+<tr><td><nt>dec</nt></td><td><bnf>&rarr;</bnf></td><td><nt>tydec</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>vardec</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>fundec</nt></td></tr>
+<tr><td><nt>tydec</nt></td><td><bnf>&rarr;</bnf></td><td><lit>type</lit> <tok>typid</tok> <lit>=</lit> <nt>ty</nt></td></tr>
+<tr><td><nt>ty</nt></td><td><bnf>&rarr;</bnf></td><td><tok>typid</tok></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>arrty</nt></td></tr>
+<tr><td></td><td><bnf>|</bnf></td><td><nt>recty</nt></td></tr>
+<tr><td><nt>arrty</nt></td><td><bnf>&rarr;</bnf></td><td><lit>array of</lit> <tok>typid</tok></td></tr>
+<tr><td><nt>recty</nt></td><td><bnf>&rarr;</bnf></td><td><lit>{</lit> <nt>fielddec</nt> <bnf>*</bnf><sup>,</sup> <lit>}</lit></td></tr>
+<tr><td><nt>fieldec</nt></td><td><bnf>&rarr;</bnf></td><td><tok>id</tok> <lit>:</lit> <tok>typid</tok></td></tr>
+<tr><td><nt>vardec</nt></td><td><bnf>&rarr;</bnf></td><td><lit>var</lit> <tok>id</tok> <bnf>[</bnf> <lit>:</lit> <tok>typid</tok> <bnf>]</bnf> <lit>:=</lit> <nt>exp</nt></td></tr>
+<tr><td><nt>fundec</nt></td><td><bnf>&rarr;</bnf></td><td><lit>function</lit> <tok>id</tok> <lit>(</lit> <nt>fielddec</nt> <bnf>*</bnf><sup>,</sup> <lit>) <bnf>[</bnf>: </lit> <tok>typid</tok> <bnf>]</bnf> <lit>=</lit> <nt>exp</nt></td></tr>
+</table>
+
+<hr>
+
+<br>
+<br>
+
+</body>
+</html>
