@@ -16,8 +16,6 @@ filter p = foldMap filt
   where filt a | p a       = pure a
                | otherwise = mempty
 
-
-  
 charvect = V.generate 20 (chr . (+ 60))
 
 chargen :: Int -> V.Vector Char

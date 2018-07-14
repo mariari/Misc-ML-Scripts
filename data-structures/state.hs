@@ -42,9 +42,3 @@ funtest = flip runState 3 $ do
   g x
   modify (+ 99)
   pure 5
-
--- (5,107)
-
-
-
--- (+ 1) <$> (+ 2) <$> Just 3
