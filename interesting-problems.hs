@@ -55,7 +55,7 @@ rectToList (Rec x1 x2 y) = replicate x1 0 <> replicate diff y
   where
     diff = x2 - x1 + 1
 
-skyLine :: [Rectangle] -> [Int]
+skyLine :: (Foldable f, Functor f) => f Rectangle -> [Int]
 skyLine = foldr f [] . fmap rectToList
   where
     f = zipWithSameF max 0

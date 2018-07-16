@@ -6,6 +6,7 @@ Some notable files are
 2. `interesting-problems.hs` - This file is for code solutions to small but interesting problems
 3. `Modern-compilers` - A Haskell solution to "Modern Compilers in ML"
 4. `TAPL` - Haskell versions of the "in ML" chapters of TAPL
-5. `data-structures/` - Various data structures made in Haskell
-6. `OCAML/` - Various OcaML scripts
+5. `Free` - Playing and useage of the Free Monad
+6. `data-structures/` - Various data structures made in Haskell
+7. `OCAML/` - Various OcaML scripts
    1. `interp` - a mini interpreter in OcaML
