@@ -9,9 +9,8 @@ import Data.List
 import Control.Monad
 
 
-
-
 data DBTransaction' x = Query String ([String] -> x)
+                      | Write String String x
                       deriving (Functor)
 
 type DBTransaction = Free DBTransaction'
@@ -19,23 +18,28 @@ type DBTransaction = Free DBTransaction'
 query :: String -> DBTransaction [String]
 query str = liftF (Query str id)
 
-transaction :: [Char] -> DBTransaction [[[[String]]]]
+write :: String -> String -> DBTransaction String
+write loc txt = liftF (Write loc txt txt)
+
+--transaction :: [Char] -> DBTransaction [[[[String]]]]
+transaction :: String -> Free DBTransaction' ()
 transaction str = do
   databases <- query "show * in Database"
   let dbLeft = filter (str `isInfixOf`) databases
-  forM dbLeft $ \db -> do
+  forM_ dbLeft $ \db -> do
     tables <- query ("show * in " <> db)
-    forM tables $ \table -> do
+    forM_ tables $ \table -> do
       schemas <- query ("show * in table " <> table <> " in database " <> db)
-      forM schemas $ \schema -> do
-        query ("show cr in schema " <> schema <> " in table" <> table <> " in database " <> db)
-
+      forM_ schemas $ \schema -> do
+        creation <- query ("show cr in schema " <> schema <> " in table " <> table <> " in database " <> db)
+        forM_ creation (write (db <> "/" <> schema))
 
 runPure :: Free DBTransaction' a -> [[String]] -> [(String, [String])]
 runPure = go
-  where go (Pure a)               _      = []
-        go (Free (Query qr next)) (x:xs) = (qr,x) : go (next x) xs
-        go (Free (Query qr next)) []     = []
+  where go (Pure a)               _        = []
+        go (Free (Query qr next)) (x:xs)   = (qr,x) : go (next x) xs
+        go (Free (Query qr next)) []       = []
+        go (Free (Write file txt next)) xs = ("wrote file " <> file <> " with text " <> txt,[txt]) : go next xs
 
 inputs = [["notHeart", "testHeart", "MoreTest", "testA"] -- dbs
          ,["table1", "tabl2"]          -- tables in testHeart
@@ -50,8 +54,12 @@ inputs = [["notHeart", "testHeart", "MoreTest", "testA"] -- dbs
 response = [("show * in Database",["notHeart","testHeart","MoreTest","testA"])
            ,("show * in testHeart",["table1","tabl2"])
            ,("show * in table table1 in database testHeart",["schema1","more call"])
-           ,("show cr in schema schema1 in tabletable1 in database testHeart",["text","text2"])
-           ,("show cr in schema more call in tabletable1 in database testHeart",["text3","text4"])
+           ,("show cr in schema schema1 in table table1 in database testHeart",["text","text2"])
+           ,("wrote file testHeart/schema1 with text text",["text"])
+           ,("wrote file testHeart/schema1 with text text2",["text2"])
+           ,("show cr in schema more call in table table1 in database testHeart",["text3","text4"])
+           ,("wrote file testHeart/more call with text text3",["text3"])
+           ,("wrote file testHeart/more call with text text4",["text4"])
            ,("show * in table tabl2 in database testHeart",["schema2","schema3"])]
 
 -- Gotten from Free  From Tree & Halogen VDOM--------------------------------------------
