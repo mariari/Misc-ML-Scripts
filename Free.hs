@@ -15,6 +15,11 @@ data DBTransaction' x = Query String ([String] -> x)
 
 type DBTransaction = Free DBTransaction'
 
+eta :: Functor f => f a -> Free f a
+eta = Free . fmap Pure
+
+-- for this code eta = liftF
+
 query :: String -> DBTransaction [String]
 query str = liftF (Query str id)
 
@@ -39,7 +44,7 @@ runPure = go
   where go (Pure a)               _        = []
         go (Free (Query qr next)) (x:xs)   = (qr,x) : go (next x) xs
         go (Free (Query qr next)) []       = []
-        go (Free (Write file txt next)) xs = ("wrote file " <> file <> " with text " <> txt,[txt]) : go next xs
+        go (Free (Write file txt next)) xs = ("wrote file " <> file <> " with text " <> txt, [txt]) : go next xs
 
 inputs = [["notHeart", "testHeart", "MoreTest", "testA"] -- dbs
          ,["table1", "tabl2"]          -- tables in testHeart
