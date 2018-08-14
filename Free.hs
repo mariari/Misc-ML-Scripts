@@ -135,7 +135,7 @@ runProgramImp = go
 runProgramPure :: TalkerM a -> [String] -> [String]
 runProgramPure = go
   where
-    go (Pure a)                 _       = []
-    go (Free (ListenF reply))   (x:xs)  = go (reply x) xs
-    go (Free (ListenF reply))   []      = []
-    go (Free (SpeakF str next)) xs      = str : go next xs
+    go (Pure a)                 _      = []
+    go (Free (ListenF reply))   (x:xs) = go (reply x) xs
+    go (Free (ListenF reply))   []     = []
+    go (Free (SpeakF str next)) xs     = str : go next xs

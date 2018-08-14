@@ -1,6 +1,6 @@
 open Core
 
-(* TAPL 6.1.5 *)
+(* TAPL 6.1.5, da brujin indicies! *)
 (* self made lambda *)
 type 'a lambda = Var of 'a
                | Abs of string * 'a lambda
@@ -16,9 +16,9 @@ exception Foo of string
 
 module Name_lambda : sig
   type t = context
-  val create        : (string * int) list -> context
-  val remove_names  : context -> string lambda -> int lambda
-  val restore_names : context -> int lambda -> string lambda
+  val create        : (string * int) list -> t
+  val remove_names  : t -> string lambda -> int lambda
+  val restore_names : t -> int lambda -> string lambda
 end = struct
 
   type t = context
