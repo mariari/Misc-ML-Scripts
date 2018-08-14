@@ -3,8 +3,8 @@ open Core
 (* TAPL 6.1.5 *)
 (* self made lambda *)
 type 'a lambda = Var of 'a
-       | Abs of string * 'a lambda
-       | App of 'a lambda * 'a lambda
+               | Abs of string * 'a lambda
+               | App of 'a lambda * 'a lambda
 
 type context =
   { depth    : int;
