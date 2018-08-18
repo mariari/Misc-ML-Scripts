@@ -1,5 +1,7 @@
 import Data.Monoid
 -- Question from Guy Steele
+
+-- maxgen is just a poor mans scanl!
 maxGen :: Ord t1 => (t -> t1) -> [t] -> [(t, t1)]
 maxGen _   []     = []
 maxGen key (x:xs) = foldl func [(x, key x)] xs
@@ -15,8 +17,8 @@ maxRight key = maxGen key . reverse
 waterSustained :: (Ord a, Num a) => [a] -> a
 waterSustained = foldl func 0 . maxR . maxL
   where
-    maxL = maxLeft id
-    maxR = maxRight fst
+    maxL = maxLeft id   -- could just use scanl instead!
+    maxR = maxRight fst -- would make 3 different lists though!
     func acc ((val,lMax), rMax) = acc + max (smaller - val) 0
       where smaller = min rMax lMax
 
