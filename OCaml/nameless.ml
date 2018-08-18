@@ -36,34 +36,34 @@ end = struct
                 backward = f (Map.empty (module Int)) (List.map ~f:Tuple2.swap lis);
       }}
 
-  let rec remove_names c = function
+  let rec remove_names ({depth ; names = {forward ; backward}} as c) = function
       App (f,s)      -> App (remove_names c f, remove_names c s)
-    | Abs (str,term) -> let new_depth = c.depth + 1 in
+    | Abs (str,term) -> let new_depth = depth + 1 in
                         Abs (str, remove_names
                                     {depth = new_depth;
-                                     names = {backward = c.names.backward;
-                                              forward  = Map.update c.names.forward
+                                     names = {backward = backward;
+                                              forward  = Map.update forward
                                                                     str
                                                                     (fun _ -> -new_depth)}}
                                     term)
-    | Var str -> match Map.find c.names.forward str with
-                   Some num -> Var (num + c.depth)
+    | Var str -> match Map.find forward str with
+                   Some num -> Var (num + depth)
                  | None     -> raise (Foo String.("Variable not in map, try adding"
                                                   ^ str
                                                   ^ " to the table"))
 
 
-  let rec restore_names c = function
+  let rec restore_names  ({depth ; names = {forward ; backward}} as c) = function
       App (f,s)      -> App (restore_names c f, restore_names c s)
-    | Abs (str,term) -> let new_depth = c.depth + 1 in
+    | Abs (str,term) -> let new_depth = depth + 1 in
                         Abs (str, restore_names
                                     {depth  = new_depth;
-                                     names = {forward  = c.names.forward;
-                                              backward = Map.update c.names.backward
+                                     names = {forward  = forward;
+                                              backward = Map.update backward
                                                                     (-new_depth)
                                                                     (fun _ -> str)}}
                                term)
-    | Var num -> match Map.find c.names.backward (num - c.depth) with
+    | Var num -> match Map.find backward (num - depth) with
                   Some str -> Var str
                 | None     -> raise (Foo String.("Variable not in map, try adding"
                                                  ^ Int.to_string num
