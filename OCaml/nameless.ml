@@ -19,8 +19,8 @@ type context = {
 
 exception Foo of string
 
-let rec eval f l = match f l with
-    Some x -> eval f x
+let rec until_none f l = match f l with
+    Some x -> until_none f x
   | None   -> l
 
 module Name_lambda : sig
@@ -104,8 +104,6 @@ module Eval = struct
 
   let is_vals = List.for_all ~f:is_val
 
-
-
   (* Evaluates the abstraction on the left argument and places t2 inside of it *)
   let shift_l v1 t2 = let Abs(_,t1) = shift (-1) v1 [@@warning "-8"] in
                       Some (subs 0 t2 t1)
@@ -115,7 +113,7 @@ module Eval = struct
     | Abs (str, (App (_,_) as t2)) -> Option.map (eval1_normal t2) (fun x -> Abs (str, x))
     | _                            -> None
 
-  let eval_normal = eval eval1_normal
+  let eval_normal = until_none eval1_normal
 
   let rec eval1_value = function
       App (v1, v2) when is_vals [v2;v1] -> shift_l v1 v2
@@ -123,13 +121,11 @@ module Eval = struct
     | App (t1, t2)                -> Option.map (eval1_value t1) (fun t1' -> App (t1', t2))
     | _                           -> None
 
-  let eval_value = eval eval1_value
+  let eval_value = until_none eval1_value
 end
 
 
-
-
-(*Testing code _______________________________________________*)
+(* Testing code *)
 
 let given = NL.create [("x", 4); ("y", 3); ("z", 2); ("b", 1); ("a", 0)]
 
