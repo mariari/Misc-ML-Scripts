@@ -1,7 +1,7 @@
+{-# LANGUAGE FlexibleContexts #-}
 import           Control.Monad.Writer.Lazy as W
 import qualified Data.Set                  as S
 import           Data.Monoid
-
 -- asked by someone
 -- is it possible to remove 0 or more characters from a string S1 = string S2
 
@@ -21,7 +21,7 @@ isSameRem' xs ys = null $ foldl f ys xs
 
 -- if the character is not valid write it to a log
 -- we are doing this over lines of strings
-correctBenignErrorsL :: (Traversable t, MonadWriter [Char] f) => t Char -> f (t Char)
+correctBenignErrorsL :: (Traversable t, MonadWriter String f) => t Char -> f (t Char)
 correctBenignErrorsL xs = traverse f xs
   where
     f x | S.member x validChar = return x
