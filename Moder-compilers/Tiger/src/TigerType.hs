@@ -1,11 +1,11 @@
 module TigerType where
 
+import Data.Symbol
 
 type Program = Exp
 
 type Line = Int
 type Column = Int
-type Symbol = String
 
 type Pos = (Line, Column)
 

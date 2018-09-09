@@ -1,12 +1,13 @@
 module TigerParser where
 
-import Text.Parsec
-import Text.Parsec.String
-import Data.Monoid
-import Text.ParserCombinators.Parsec.Language
+import           Text.Parsec
+import           Text.Parsec.String
+import           Data.Monoid
+import           Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as T
-import Control.Monad.Identity
-import Text.Parsec.Expr as E
+import           Control.Monad.Identity
+import           Text.Parsec.Expr as E
+import qualified Data.Symbol as S
 
 import TigerType
 
@@ -48,7 +49,7 @@ sourceLineCol source = (sourceLine source, sourceColumn source)
 
 getLineCol = fmap sourceLineCol getPosition
 
-symbol = identifier
+symbol = S.intern <$> identifier
 
 parseTiger = expression
 
@@ -107,7 +108,7 @@ for :: Parser Exp
 for = do
   pos <- getLineCol
   reserved "for"
-  var <- identifier
+  var <- symbol
   reservedOp ":="
   from <- expression
   reserved "to"
@@ -148,7 +149,7 @@ let' = do
 
 funcall = do
   pos <- getLineCol
-  id  <- identifier
+  id  <- symbol
   exps <- parens (expression `sepBy` comma)
   return $ Funcall id exps pos
 
@@ -169,7 +170,7 @@ recCreate = do
 field' :: Parser Field
 field' = do
   pos <- getLineCol
-  id' <- identifier
+  id' <- symbol
   reservedOp "="
   exp <- expression
   return $ Field id' exp pos
@@ -210,14 +211,14 @@ lvalueParser = leftRec idParser (fieldExp <|> subscript)
     idParser = do
       pos <- getLineCol
       id' <- identifier
-      return $ SimpleVar id' pos
+      return $ SimpleVar (S.intern id') pos
 
 fieldExp :: ParsecT String u Identity (Var -> Var)
 fieldExp = do
   pos <- getLineCol
   reservedOp "."
   a <- identifier
-  return $ (\l -> FieldVar l a pos)
+  return $ (\l -> FieldVar l (S.intern a) pos)
 
 subscript :: ParsecT String () Identity (Var -> Var)
 subscript = do
@@ -238,14 +239,14 @@ recty = RecordTy <$> braces (fieldDec `sepBy` comma)
 
 namety = do
   pos <- getLineCol
-  id' <- identifier
+  id' <- symbol
   return $ NameTy id' pos
 
 -- Declarations--------------------------------------------------------------
 fieldDec :: Parser FieldDec
 fieldDec = do
   pos <- getLineCol
-  id' <- identifier
+  id' <- symbol
   reservedOp ":"
   typid <- symbol
   return $ FieldDec id' typid pos
@@ -263,10 +264,10 @@ fundec :: Parser Dec
 fundec = do
   pos <- getLineCol
   reserved "function"
-  id'    <- identifier
+  id'    <- symbol
   fields <- parens (fieldDec `sepBy` comma)
   optional (reservedOp ":")
-  mtypid <- optionMaybe identifier
+  mtypid <- optionMaybe symbol
   reservedOp "="
   exp <- expression
   return $ FunDec id' fields mtypid exp pos
@@ -275,9 +276,9 @@ vardec :: Parser Dec
 vardec = do
   pos <- getLineCol
   reserved "var"
-  id' <- identifier
+  id' <- symbol
   optional (reservedOp ":")
-  mtypid <- optionMaybe identifier
+  mtypid <- optionMaybe symbol
   reservedOp ":="
   exp <- expression
   return $ VarDec id' mtypid exp pos
