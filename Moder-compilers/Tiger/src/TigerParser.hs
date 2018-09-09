@@ -98,8 +98,7 @@ ifThen = do
   pred <- expression
   reserved "then"
   then' <- expression
-  optional (reserved "else")
-  else' <- optionMaybe expression
+  else' <- optionMaybe (reserved "else" >> expression)
   case else' of
     Just x  -> return $ IfThenElse pred then' x pos
     Nothing -> return $ IfThen     pred then'   pos
