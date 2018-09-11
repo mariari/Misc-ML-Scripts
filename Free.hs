@@ -8,7 +8,6 @@ import Test.QuickCheck
 import Data.List
 import Control.Monad
 
-
 data DBTransaction' x = Query String ([String] -> x)
                       | Write String String x
                       deriving (Functor)

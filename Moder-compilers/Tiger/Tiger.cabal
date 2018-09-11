@@ -38,6 +38,8 @@ library
     , parsec
     , mtl
     , symbol
+    , containers
+    , unordered-containers
   default-language: Haskell2010
 
 executable Tiger-exe
