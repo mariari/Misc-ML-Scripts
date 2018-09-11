@@ -4,7 +4,6 @@ import           Data.Unique
 import           Data.Symbol
 import qualified Data.Map.Strict as Map -- we use Map as we need ordering on the symbols
 
-
 instance Show Unique where
   show _ = "<Unique ptr>"
 
