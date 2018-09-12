@@ -48,7 +48,7 @@ executable Tiger-exe
       Paths_Tiger
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -fwarn-incomplete-patterns
   build-depends:
       Tiger
     , base >=4.7 && <5
