@@ -14,7 +14,7 @@ data Type = INT
           | NIL
           | UNIT
           | NAME Symbol (Maybe Type) -- was a ty option ref in the book
-          deriving Show
+          deriving (Show,Eq)
 
 
 type SymMap a = Map.Map Symbol a

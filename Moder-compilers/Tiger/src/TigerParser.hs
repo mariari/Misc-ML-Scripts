@@ -298,7 +298,11 @@ createOpTable term = Infix term AssocLeft
 timesDiv    = listToChoice [("*", Times), ("/", Div)]
 addMinus    = listToChoice [("+",  Plus), ("-", Minus)]
 comparisons = listToChoice [("=", Eq), ("<>", Neq), ("<", Lt), ("<=", Le), (">", Gt), (">=", Ge)]
+checks1     = listToChoice [("|", Or)]
+checks2     = listToChoice [("&", Or)]
 
 optable = [[createOpTable timesDiv]
           ,[createOpTable addMinus]
-          ,[createOpTable comparisons]]
+          ,[createOpTable comparisons]
+          ,[createOpTable checks1]
+          ,[createOpTable checks2]]

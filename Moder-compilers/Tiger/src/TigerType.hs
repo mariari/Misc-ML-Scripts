@@ -49,4 +49,4 @@ data Dec = FunDec Symbol [FieldDec] (Maybe Symbol) Exp Pos
          | TypeDec Symbol Ty Pos
          deriving (Show)
 
-data Op = Plus | Minus | Times | Div | Eq | Neq | Lt | Le | Gt | Ge deriving (Show)
+data Op = Plus | Minus | Times | Div | Eq | Neq | Lt | Le | Gt | Ge | And | Or deriving (Show,Eq)

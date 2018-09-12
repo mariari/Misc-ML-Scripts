@@ -45,12 +45,19 @@ transVar :: MonadTranR m => Absyn.Var -> m Expty
 transVar = undefined
 
 transExp :: MonadTranS m => Absyn.Exp -> m Expty
-tranExp (Absyn.Infix' left Absyn.Plus right pos) = do
-  left  <- transExp left
-  right <- transExp right
-  lift (checkInt left pos)
-  lift (checkInt right pos)
-  return (Expty {expr = (), typ = PT.INT})
+transExp (Absyn.Infix' left x right pos) = case x of
+  Absyn.Minus -> handleInfixInt left right pos
+  Absyn.Plus  -> handleInfixInt left right pos
+  Absyn.Times -> handleInfixInt left right pos
+  Absyn.Div   -> handleInfixInt left right pos
+  Absyn.And   -> handleInfixInt left right pos
+  Absyn.Or    -> handleInfixInt left right pos
+  Absyn.Gt    -> handleInfixStrInt left right pos
+  Absyn.Ge    -> handleInfixStrInt left right pos
+  Absyn.Lt    -> handleInfixStrInt left right pos
+  Absyn.Le    -> handleInfixStrInt left right pos
+  Absyn.Eq    -> handleInfixSame left right pos
+  Absyn.Neq   -> handleInfixSame left right pos
 transExp x = undefined
 
 transDec :: MonadTranS m => Absyn.Exp -> m ()
@@ -61,6 +68,51 @@ transTy = undefined
 
 
 -- Helper functions----------------------------------------------------------------------------
+
+-- this function will eventually become deprecated once we handle the intermediate stage
+handleInfixExp :: MonadTranS m
+               => (Expty -> Absyn.Pos -> m ()) -- A function like checkInt
+               -> Absyn.Exp                    -- left side of infix
+               -> Absyn.Exp                    -- right side of infix
+               -> Absyn.Pos                    -- the Posiiton
+               -> m Expty
+handleInfixExp f left right pos = do
+  left  <- transExp left
+  right <- transExp right
+  f left pos
+  f right pos
+  return (Expty {expr = (), typ = PT.INT})
+
+-- will become deprecated once we handle the intermediate stage
+handleInfixSame :: MonadTranS m => Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
+handleInfixSame left right pos = do
+  left  <- transExp left
+  right <- transExp right
+  checkSame left right pos
+  return (Expty {expr = (), typ = PT.INT})
+
+handleInfixInt, handleInfixStrInt, handleInfixStr
+  :: MonadTranS m => Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
+handleInfixInt    = handleInfixExp checkInt
+handleInfixStr    = handleInfixExp checkStr
+handleInfixStrInt = handleInfixExp checkStrInt
+
+
+-- Check checks whether the arguments are of the correct type if not throw a monadError
 checkInt :: (MonadError String m, Show a) => Expty -> a -> m ()
 checkInt (Expty {typ = PT.INT}) pos = return  ()
 checkInt (Expty {typ = _})      pos = throwError (show pos <> " integer required")
+
+checkStr :: (MonadError String m, Show a) => Expty -> a -> m ()
+checkStr (Expty {typ = PT.STRING}) pos = return  ()
+checkStr (Expty {typ = _})         pos = throwError (show pos <> " string required")
+
+checkStrInt :: (MonadError String m, Show a) => Expty -> a -> m ()
+checkStrInt (Expty {typ = PT.STRING}) pos = return  ()
+checkStrInt (Expty {typ = PT.INT})    pos = return  ()
+checkStrInt (Expty {typ = _})         pos = throwError (show pos <> " integer or string required")
+
+checkSame :: (MonadError String m, Show a) => Expty -> Expty -> a -> m ()
+checkSame (Expty {typ = x}) (Expty {typ = y}) pos
+  | x == y    = return ()
+  | otherwise = throwError (show pos <> " given a " <> show x <> " needs to be the same type as " <> show y)
