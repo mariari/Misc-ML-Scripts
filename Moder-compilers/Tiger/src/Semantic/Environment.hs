@@ -10,7 +10,8 @@ import qualified Data.Map.Strict as Map -- we are use ordering in symbols, so we
 type TypeMap = PT.SymMap PT.Type  -- for types
 type EnvMap  = PT.SymMap EnvEntry -- for functions and variables
 
-data EnvEntry = VarEntry {ty :: PT.Type}
+data EnvEntry = VarEntry {ty         :: PT.Type
+                         ,modifiable :: Bool}
               | FunEntry {formals :: [PT.Type]
                          ,result  :: PT.Type}
               deriving Show
