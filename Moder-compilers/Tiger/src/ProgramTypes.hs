@@ -9,11 +9,11 @@ instance Show Unique where
 
 data Type = INT
           | STRING
-          | RECORD [(Symbol, Type)] Unique
-          | ARRAY Type Unique
+          | RECORD [(Symbol, Type)] !Unique
+          | ARRAY Type !Unique
           | NIL
           | UNIT
-          | NAME Symbol (Maybe Type) -- was a ty option ref in the book
+          | NAME !Symbol !(Maybe Type) -- was a ty option ref in the book
           deriving (Show,Eq)
 
 

@@ -19,13 +19,13 @@ import           Control.Monad.Except
 -- will be expanded upon in chapter 7
 type TranslateExp = ()
 
-data Expty = Expty { expr :: TranslateExp
-                   , typ  :: PT.Type
+data Expty = Expty { expr :: !TranslateExp
+                   , typ  :: !PT.Type
                    } deriving Show
 
-data Translation = Trans { tm :: Env.TypeMap
-                         , em :: Env.EnvMap
-                         } deriving Show
+data Translation = Trans { tm :: !Env.TypeMap
+                         , em :: !Env.EnvMap
+                         }  deriving Show
 
 
 type MonadTranErr m = (MonadError String m)
@@ -65,6 +65,10 @@ transExp' insideLoop (Absyn.Infix' left x right pos) = case x of
 transExp' insideLoop (Absyn.Break pos)
   | insideLoop = return (Expty {expr = (), typ = PT.NIL})
   | otherwise  = throwError (show pos <> " break needs to be used inside a loop")
+-- fix this case... should pop the changes made by transDec
+-- and this case should be able to handle mutally recursive functions
+-- do this by filtering out TypeDec for add TypeDec
+-- and grab the rest by doing the opposite filter, and then just call traverse endVal!
 transExp' insideLoop (Absyn.Let decs exps pos) = do
   traverse transDec decs
   case exps of
@@ -114,6 +118,7 @@ locallyInsert1 expression (symb, envEntry) = do
 
   return expResult
 
+-- could just be foldr locallyInsert1... however I don't trust my reasoning enough to do that
 -- adds symbols to the envEntry replacing what is there for this scope
 locallyInsert :: MonadTranS m => m b -> [(S.Symbol, Env.EnvEntry)] -> m b
 locallyInsert expression xs = do
