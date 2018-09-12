@@ -28,7 +28,7 @@ data Translation = Trans { tm :: Env.TypeMap
                          } deriving Show
 
 
-type MonadTranErr m = MonadError String m
+type MonadTranErr m = (MonadError String m)
 type MonadTranS   m = (MonadState  Translation m, MonadTranErr m)
 type MonadTranR   m = (MonadReader Translation m, MonadTranErr m)
 type MonadTranSIO m = (MonadIO m, MonadTranS m)
@@ -39,10 +39,6 @@ runMonadTranS :: Env.TypeMap
               -> Either String (a, Translation)
 runMonadTranS tm em f = runExcept (runStateT f trans)
   where trans = Trans {tm = tm, em = em}
-
--- transVar doesn't go to Dec, so it's a reader
-transVar :: MonadTranR m => Absyn.Var -> m Expty
-transVar = undefined
 
 transExp :: MonadTranS m => Absyn.Exp -> m Expty
 transExp (Absyn.Infix' left x right pos) = case x of
@@ -58,14 +54,21 @@ transExp (Absyn.Infix' left x right pos) = case x of
   Absyn.Le    -> handleInfixStrInt left right pos
   Absyn.Eq    -> handleInfixSame left right pos
   Absyn.Neq   -> handleInfixSame left right pos
-transExp x = undefined
+transExp (Absyn.IntLit _ _) = return (Expty {expr = (), typ = PT.INT})
+transExp (Absyn.Nil _)      = return (Expty {expr = (), typ = PT.NIL})
+transExp (Absyn.Var x) = do
+  env  <- get
+  runReaderT (transVar x) env
+
+-- transVar doesn't go to Dec, so it's a reader
+transVar :: MonadTranR m => Absyn.Var -> m Expty
+transVar = undefined
 
 transDec :: MonadTranS m => Absyn.Exp -> m ()
 transDec = undefined
 
 transTy :: Env.EnvMap -> Absyn.Exp -> PT.Type
 transTy = undefined
-
 
 -- Helper functions----------------------------------------------------------------------------
 
