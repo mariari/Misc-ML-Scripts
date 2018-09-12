@@ -1,17 +1,10 @@
-
-
-
 module Semantic.Environment where
-
 
 import qualified ProgramTypes as PT
 import qualified TigerType    as Absyn
 
-import           Data.Unique
 import qualified Data.Symbol as S
 import qualified Data.Map.Strict as Map -- we are use ordering in symbols, so we can't use HashMap
-import           Control.Monad.State.Lazy
-import           Control.Monad.Reader
 
 -- Environment
 type TypeMap = PT.SymMap PT.Type  -- for types
