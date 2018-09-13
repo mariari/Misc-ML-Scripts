@@ -1,4 +1,4 @@
-module TigerType where
+module AbstractSyntax where
 
 import Data.Symbol
 

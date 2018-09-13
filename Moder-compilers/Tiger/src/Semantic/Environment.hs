@@ -1,27 +1,27 @@
 module Semantic.Environment where
 
-import qualified ProgramTypes as PT
-import qualified TigerType    as Absyn
+import qualified ProgramTypes   as PT
+import qualified AbstractSyntax as Absyn
 
 import qualified Data.Symbol as S
 import qualified Data.Map.Strict as Map -- we are use ordering in symbols, so we can't use HashMap
 
 -- Environment
-type TypeMap = PT.SymMap PT.Type  -- for types
-type EnvMap  = PT.SymMap EnvEntry -- for functions and variables
+type TypeMap  = PT.SymMap PT.Type  -- for types
+type EntryMap = PT.SymMap Entry -- for functions and variables
 
-data EnvEntry = VarEntry {ty         :: !PT.Type
-                         ,modifiable :: !Bool}
-              | FunEntry {formals :: ![PT.Type]
-                         ,result  :: !PT.Type}
-              deriving Show
+data Entry = VarEntry {ty         :: !PT.Type
+                      ,modifiable :: !Bool}
+           | FunEntry {formals :: ![PT.Type]
+                      ,result  :: !PT.Type}
+           deriving Show
 
 baseTenv :: TypeMap
 baseTenv = Map.fromList [(S.intern "int",    PT.INT)
                         ,(S.intern "string", PT.STRING)
                         ,(S.intern "nil",    PT.NIL)]
 
-baseVenv :: EnvMap
+baseVenv :: EntryMap
 baseVenv = Map.fromList [(S.intern "print",     FunEntry [PT.STRING] PT.UNIT)
                         ,(S.intern "flush",     FunEntry []          PT.UNIT)
                         ,(S.intern "getchar",   FunEntry []          PT.STRING)

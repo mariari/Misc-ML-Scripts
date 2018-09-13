@@ -4,7 +4,7 @@
 module Semantic.Analysis where
 
 import qualified ProgramTypes         as PT
-import qualified TigerType            as Absyn
+import qualified AbstractSyntax       as Absyn
 import qualified Semantic.Environment as Env
 
 import           Data.Monoid((<>))
@@ -23,7 +23,7 @@ data Expty = Expty { expr :: !TranslateExp
                    , typ  :: !PT.Type
                    } deriving Show
 
-data VarTy = VarTy { var :: !Env.EnvEntry
+data VarTy = VarTy { var :: !Env.Entry
                    , ex :: !TranslateExp}
 
 varTytoExpTy (VarTy {var = var, ex = ex}) =
@@ -33,7 +33,7 @@ varTytoExpTy (VarTy {var = var, ex = ex}) =
   in Expty {expr = ex, typ = typ}
 
 data Translation = Trans { tm :: !Env.TypeMap
-                         , em :: !Env.EnvMap
+                         , em :: !Env.EntryMap
                          }  deriving Show
 
 
@@ -43,13 +43,13 @@ type MonadTranR   m = (MonadReader Translation m, MonadTranErr m)
 type MonadTranSIO m = (MonadIO m, MonadTranS m)
 
 runMonadTranS :: Env.TypeMap
-              -> Env.EnvMap
+              -> Env.EntryMap
               -> StateT Translation (Except String) a
               -> Either String (a, Translation)
 runMonadTranS tm em f = runExcept (runStateT f trans)
   where trans = Trans {tm = tm, em = em}
 
-transExp :: Env.TypeMap -> Env.EnvMap -> Absyn.Exp -> Expty
+transExp :: Env.TypeMap -> Env.EntryMap -> Absyn.Exp -> Expty
 transExp tm em absyn = case runMonadTranS tm em (transExp' False absyn) of
   Left a          -> error a
   Right (expt,tl) -> expt
@@ -144,8 +144,8 @@ transExp' inLoop (Absyn.Funcall fnSym args pos) = do
       return (Expty {expr = (), typ = result})
 
 transExp' inLoop (Absyn.Assign var toPut pos) = do
-  VarTy {var = envVar} <- get >>= runReaderT (transVar x)
-  Expty {typ = toPutTlpype} <- undefined
+  VarTy {var = envVar} <- get >>= runReaderT (transVar var)
+  Expty {typ = toPutType} <- transExp' inLoop toPut
   undefined
 
 -- transVar doesn't go to Dec, so it's a reader
@@ -155,12 +155,12 @@ transVar = undefined
 transDec :: MonadTranS m => Absyn.Dec -> m ()
 transDec = undefined
 
-transTy :: Env.EnvMap -> Absyn.Exp -> PT.Type
+transTy :: Env.EntryMap -> Absyn.Exp -> PT.Type
 transTy = undefined
 
 -- Helper functions----------------------------------------------------------------------------
 -- adds a symbol to the envEntry replacing what is there for this scope
-locallyInsert1 :: MonadTranS m => m b -> (S.Symbol, Env.EnvEntry) -> m b
+locallyInsert1 :: MonadTranS m => m b -> (S.Symbol, Env.Entry) -> m b
 locallyInsert1 expression (symb, envEntry) = do
   Trans {tm = typeMap, em = envMap} <- get
   let val = envMap Map.!? symb
@@ -174,7 +174,7 @@ locallyInsert1 expression (symb, envEntry) = do
 
 -- could just be foldr locallyInsert1... however I don't trust my reasoning enough to do that
 -- adds symbols to the envEntry replacing what is there for this scope
-locallyInsert :: MonadTranS m => m b -> [(S.Symbol, Env.EnvEntry)] -> m b
+locallyInsert :: MonadTranS m => m b -> [(S.Symbol, Env.Entry)] -> m b
 locallyInsert expression xs = do
   Trans {tm = typeMap, em = envMap} <- get
   let vals = fmap (\(symb,_) -> (symb, envMap Map.!? symb)) xs
@@ -187,7 +187,7 @@ locallyInsert expression xs = do
   return expResult
 
 -- Changes the Envrionment value... removing a value if there is none, else places the new value in the map
-changeEnvValue :: MonadState Translation m => S.Symbol -> Maybe Env.EnvEntry -> m ()
+changeEnvValue :: MonadState Translation m => S.Symbol -> Maybe Env.Entry -> m ()
 changeEnvValue symb val = do
   Trans {tm = typeMap, em = envMap} <- get
   case val of

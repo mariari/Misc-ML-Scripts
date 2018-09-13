@@ -9,7 +9,7 @@ import           Control.Monad.Identity
 import           Text.Parsec.Expr as E
 import qualified Data.Symbol as S
 
-import TigerType
+import AbstractSyntax
 
 langaugeDef :: GenLanguageDef String u Identity
 langaugeDef = emptyDef { T.reservedNames   = ["array", "if", "then", "else"
