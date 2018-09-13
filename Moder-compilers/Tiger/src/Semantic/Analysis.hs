@@ -8,7 +8,7 @@ import qualified TigerType            as Absyn
 import qualified Semantic.Environment as Env
 
 import           Data.Monoid((<>))
-import           Data.Unique
+import           Control.Monad
 import qualified Data.Symbol as S
 import qualified Data.Map.Strict as Map -- we are use ordering in symbols, so we can't use HashMap
 import           Control.Monad.State.Lazy
@@ -22,6 +22,15 @@ type TranslateExp = ()
 data Expty = Expty { expr :: !TranslateExp
                    , typ  :: !PT.Type
                    } deriving Show
+
+data VarTy = VarTy { var :: !Env.EnvEntry
+                   , ex :: !TranslateExp}
+
+varTytoExpTy (VarTy {var = var, ex = ex}) =
+  let typ = case var of
+        Env.VarEntry {Env.ty = ty}     -> ty
+        Env.FunEntry {Env.result = ty} -> ty
+  in Expty {expr = ex, typ = typ}
 
 data Translation = Trans { tm :: !Env.TypeMap
                          , em :: !Env.EnvMap
@@ -49,7 +58,9 @@ transExp' :: MonadTranS m => Bool -> Absyn.Exp -> m Expty
 transExp' _ (Absyn.IntLit _ _)    = return (Expty {expr = (), typ = PT.INT})
 transExp' _ (Absyn.Nil _)         = return (Expty {expr = (), typ = PT.NIL})
 transExp' _ (Absyn.StringLit _ _) = return (Expty {expr = (), typ = PT.STRING})
-transExp' _ (Absyn.Var x)         = get >>= runReaderT (transVar x)
+transExp' _ (Absyn.Var x)         = do
+  env <- get
+  varTytoExpTy <$> runReaderT (transVar x) env
 
 transExp' inLoop (Absyn.Infix' left x right pos) = case x of
   Absyn.Minus -> handleInfixInt inLoop left right pos
@@ -111,14 +122,34 @@ transExp' inLoop (Absyn.IfThenElse pred then' else' pos) = do
   checkInt pred' pos
   checkSame then'' else'' pos
   return (Expty {expr = (), typ = typ then''})
+
 transExp' inLoop (Absyn.IfThen pred then' pos) = do
   pred'  <- transExp' inLoop pred
   then'' <- transExp' inLoop then'
   checkInt pred' pos
   checkNil then'' pos
   return (Expty {expr = (), typ = PT.NIL})
+
+transExp' inLoop (Absyn.Funcall fnSym args pos) = do
+  Trans {tm = typeMap, em = envMap} <- get
+  case envMap Map.!? fnSym of
+    Nothing                 -> throwError (show pos <> " function " <> S.unintern fnSym <> " is not defined")
+    Just (Env.VarEntry _ _) -> throwError (show pos <> " variable " <> S.unintern fnSym <> " is not a function")
+    Just (Env.FunEntry {Env.formals = formals, Env.result = result}) -> do
+      zipWithM_ (\arg formal -> do
+                    Expty {typ = argType} <- transExp' inLoop arg
+                    checkSameTyp formal argType pos)
+                args
+                formals
+      return (Expty {expr = (), typ = result})
+
+transExp' inLoop (Absyn.Assign var toPut pos) = do
+  VarTy {var = envVar} <- get >>= runReaderT (transVar x)
+  Expty {typ = toPutTlpype} <- undefined
+  undefined
+
 -- transVar doesn't go to Dec, so it's a reader
-transVar :: MonadTranR m => Absyn.Var -> m Expty
+transVar :: MonadTranR m => Absyn.Var -> m VarTy
 transVar = undefined
 
 transDec :: MonadTranS m => Absyn.Dec -> m ()
@@ -194,24 +225,28 @@ handleInfixStrInt = handleInfixExp checkStrInt
 
 
 -- Check checks whether the arguments are of the correct type if not throw a monadError
-checkInt :: (MonadError String m, Show a) => Expty -> a -> m ()
+checkInt :: (MonadTranErr m, Show a) => Expty -> a -> m ()
 checkInt (Expty {typ = PT.INT}) pos = return  ()
 checkInt (Expty {typ = _})      pos = throwError (show pos <> " integer required")
 
-checkNil :: (MonadError String m, Show a) => Expty -> a -> m ()
+checkNil :: (MonadTranErr m, Show a) => Expty -> a -> m ()
 checkNil (Expty {typ = PT.NIL}) pos = return ()
 checkNil (Expty {typ = _})      pos = throwError (show pos <> " null required")
 
-checkStr :: (MonadError String m, Show a) => Expty -> a -> m ()
+checkStr :: (MonadTranErr m, Show a) => Expty -> a -> m ()
 checkStr (Expty {typ = PT.STRING}) pos = return  ()
 checkStr (Expty {typ = _})         pos = throwError (show pos <> " string required")
 
-checkStrInt :: (MonadError String m, Show a) => Expty -> a -> m ()
+checkStrInt :: (MonadTranErr m, Show a) => Expty -> a -> m ()
 checkStrInt (Expty {typ = PT.STRING}) pos = return  ()
 checkStrInt (Expty {typ = PT.INT})    pos = return  ()
 checkStrInt (Expty {typ = _})         pos = throwError (show pos <> " integer or string required")
 
 checkSame :: (MonadError String m, Show a) => Expty -> Expty -> a -> m ()
-checkSame (Expty {typ = x}) (Expty {typ = y}) pos
+checkSame (Expty {typ = x}) (Expty {typ = y}) = checkSameTyp x y
+
+-- A variant of checkSame that works on PT.Type
+checkSameTyp :: (MonadTranErr m, Show a) => PT.Type -> PT.Type -> a -> m ()
+checkSameTyp x y pos
   | x == y    = return ()
   | otherwise = throwError (show pos <> " given a " <> show x <> " needs to be the same type as " <> show y)
