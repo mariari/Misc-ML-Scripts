@@ -49,51 +49,74 @@ transExp' :: MonadTranS m => Bool -> Absyn.Exp -> m Expty
 transExp' _ (Absyn.IntLit _ _)    = return (Expty {expr = (), typ = PT.INT})
 transExp' _ (Absyn.Nil _)         = return (Expty {expr = (), typ = PT.NIL})
 transExp' _ (Absyn.StringLit _ _) = return (Expty {expr = (), typ = PT.STRING})
-transExp' insideLoop (Absyn.Infix' left x right pos) = case x of
-  Absyn.Minus -> handleInfixInt insideLoop left right pos
-  Absyn.Plus  -> handleInfixInt insideLoop left right pos
-  Absyn.Times -> handleInfixInt insideLoop left right pos
-  Absyn.Div   -> handleInfixInt insideLoop left right pos
-  Absyn.And   -> handleInfixInt insideLoop left right pos
-  Absyn.Or    -> handleInfixInt insideLoop left right pos
-  Absyn.Gt    -> handleInfixStrInt insideLoop left right pos
-  Absyn.Ge    -> handleInfixStrInt insideLoop left right pos
-  Absyn.Lt    -> handleInfixStrInt insideLoop left right pos
-  Absyn.Le    -> handleInfixStrInt insideLoop left right pos
-  Absyn.Eq    -> handleInfixSame insideLoop left right pos
-  Absyn.Neq   -> handleInfixSame insideLoop left right pos
-transExp' insideLoop (Absyn.Break pos)
-  | insideLoop = return (Expty {expr = (), typ = PT.NIL})
-  | otherwise  = throwError (show pos <> " break needs to be used inside a loop")
+transExp' _ (Absyn.Var x)         = get >>= runReaderT (transVar x)
+
+transExp' inLoop (Absyn.Infix' left x right pos) = case x of
+  Absyn.Minus -> handleInfixInt inLoop left right pos
+  Absyn.Plus  -> handleInfixInt inLoop left right pos
+  Absyn.Times -> handleInfixInt inLoop left right pos
+  Absyn.Div   -> handleInfixInt inLoop left right pos
+  Absyn.And   -> handleInfixInt inLoop left right pos
+  Absyn.Or    -> handleInfixInt inLoop left right pos
+  Absyn.Gt    -> handleInfixStrInt inLoop left right pos
+  Absyn.Ge    -> handleInfixStrInt inLoop left right pos
+  Absyn.Lt    -> handleInfixStrInt inLoop left right pos
+  Absyn.Le    -> handleInfixStrInt inLoop left right pos
+  Absyn.Eq    -> handleInfixSame inLoop left right pos
+  Absyn.Neq   -> handleInfixSame inLoop left right pos
+
+transExp' inLoop (Absyn.Negation val pos) = do
+  val' <- transExp' inLoop val
+  checkInt val' pos
+  return (Expty {expr = (), typ = PT.INT})
+
+transExp' inLoop (Absyn.Sequence [] pos) = return (Expty {expr = (), typ = PT.NIL})
+transExp' inLoop (Absyn.Sequence xs pos) = last <$> traverse (transExp' inLoop) xs
+
+transExp' inLoop (Absyn.Break pos)
+  | inLoop    = return (Expty {expr = (), typ = PT.NIL})
+  | otherwise = throwError (show pos <> " break needs to be used inside a loop")
 -- fix this case... should pop the changes made by transDec
 -- and this case should be able to handle mutally recursive functions
 -- do this by filtering out TypeDec for add TypeDec
 -- and grab the rest by doing the opposite filter, and then just call traverse endVal!
-transExp' insideLoop (Absyn.Let decs exps pos) = do
+transExp' inLoop (Absyn.Let decs exps pos) = do
   traverse transDec decs
   case exps of
     []   -> return (Expty {expr = (), typ = PT.NIL})
-    exps -> last <$> (traverse (transExp' insideLoop) exps)
-transExp' _ (Absyn.Var x) = do
-  env  <- get
-  runReaderT (transVar x) env
-transExp' insideLoop (Absyn.While pred body pos) = do
-  pred' <- transExp' insideLoop pred
+    exps -> last <$> traverse (transExp' inLoop) exps
+
+transExp' inLoop (Absyn.While pred body pos) = do
+  pred' <- transExp' inLoop pred
   body' <- transExp' True body
   checkInt pred' pos
   checkNil body' pos
   return (Expty {expr = (), typ = PT.NIL})
-transExp' insideLoop (Absyn.For var from to body pos) = do
-  from' <- transExp' insideLoop from
-  to'   <- transExp' insideLoop to
+
+transExp' inLoop (Absyn.For var from to body pos) = do
+  from' <- transExp' inLoop from
+  to'   <- transExp' inLoop to
   Trans {tm = tm, em = em} <- get
   checkInt from' pos
   checkInt to' pos
   body' <- locallyInsert1 (transExp' True body)
                           (var, Env.VarEntry {Env.ty = PT.INT, Env.modifiable = False})
   checkNil body' pos -- the false makes it so if we try to modify it, it errors
-  return body'
+  return (Expty {expr = (), typ = typ body'})
 
+transExp' inLoop (Absyn.IfThenElse pred then' else' pos) = do
+  pred'  <- transExp' inLoop pred
+  then'' <- transExp' inLoop then'
+  else'' <- transExp' inLoop else'
+  checkInt pred' pos
+  checkSame then'' else'' pos
+  return (Expty {expr = (), typ = typ then''})
+transExp' inLoop (Absyn.IfThen pred then' pos) = do
+  pred'  <- transExp' inLoop pred
+  then'' <- transExp' inLoop then'
+  checkInt pred' pos
+  checkNil then'' pos
+  return (Expty {expr = (), typ = PT.NIL})
 -- transVar doesn't go to Dec, so it's a reader
 transVar :: MonadTranR m => Absyn.Var -> m Expty
 transVar = undefined
@@ -148,18 +171,18 @@ handleInfixExp :: MonadTranS m
                -> Absyn.Exp                    -- right side of infix
                -> Absyn.Pos                    -- the Posiiton
                -> m Expty
-handleInfixExp f insideLoop left right pos = do
-  left'  <- transExp' insideLoop left
-  right' <- transExp' insideLoop right
+handleInfixExp f inLoop left right pos = do
+  left'  <- transExp' inLoop left
+  right' <- transExp' inLoop right
   f left' pos
   f right' pos
   return (Expty {expr = (), typ = PT.INT})
 
 -- will become deprecated once we handle the intermediate stage
 handleInfixSame :: MonadTranS m => Bool -> Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
-handleInfixSame insideLoop left right pos = do
-  left'  <- transExp' insideLoop left
-  right' <- transExp' insideLoop right
+handleInfixSame inLoop left right pos = do
+  left'  <- transExp' inLoop left
+  right' <- transExp' inLoop right
   checkSame left' right' pos
   return (Expty {expr = (), typ = PT.INT})
 

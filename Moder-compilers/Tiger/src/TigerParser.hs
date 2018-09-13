@@ -51,7 +51,7 @@ getLineCol = fmap sourceLineCol getPosition
 
 symbol = S.intern <$> identifier
 
-parseTiger = expression
+parseTigerLine = parse expression ""
 
 expression :: Parser Exp
 expression = buildExpressionParser optable expression' <?> "Exp"
