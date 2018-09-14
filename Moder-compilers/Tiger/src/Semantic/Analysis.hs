@@ -1,12 +1,15 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 
 module Semantic.Analysis where
 
 import qualified ProgramTypes         as PT
 import qualified AbstractSyntax       as Absyn
 import qualified Semantic.Environment as Env
+import           Control.Monad.Unique
 
+import           Data.Unique
 import           Data.Monoid((<>))
 import           Control.Monad
 import qualified Data.Symbol as S
@@ -23,38 +26,44 @@ data Expty = Expty { expr :: !TranslateExp
                    , typ  :: !PT.Type
                    } deriving Show
 
-data VarTy = VarTy { var :: !Env.Entry
-                   , ex :: !TranslateExp}
+data VarTy = VarTy { var  :: !Env.Entry
+                   , expr :: !TranslateExp}
 
-varTytoExpTy (VarTy {var = var, ex = ex}) =
+varTytoExpTy (VarTy {var = var, expr = expr}) =
   let typ = case var of
         Env.VarEntry {Env.ty = ty}     -> ty
         Env.FunEntry {Env.result = ty} -> ty
-  in Expty {expr = ex, typ = typ}
+  in Expty {expr = expr, typ = typ}
 
 data Translation = Trans { tm :: !Env.TypeMap
                          , em :: !Env.EntryMap
                          }  deriving Show
 
 
+-- Eventually get MonadUnique to work
+--type MonadTranUn  m = (MonadTranErr m, MonadUnique' m)
+
 type MonadTranErr m = (MonadError String m)
 type MonadTranS   m = (MonadState  Translation m, MonadTranErr m)
 type MonadTranR   m = (MonadReader Translation m, MonadTranErr m)
 type MonadTranSIO m = (MonadIO m, MonadTranS m)
 
-runMonadTranS :: Env.TypeMap
-              -> Env.EntryMap
-              -> StateT Translation (Except String) a
-              -> Either String (a, Translation)
-runMonadTranS tm em f = runExcept (runStateT f trans)
+-- runMonadTranS :: Env.TypeMap
+--               -> Env.EntryMap
+--               -> StateT
+--                    Translation (Except e) a
+--               -> IO (Either e (a, Translation))
+runMonadTranS tm em f = runExceptT (runStateT f trans) -- turn back to runExcept once Unique gets up
   where trans = Trans {tm = tm, em = em}
 
-transExp :: Env.TypeMap -> Env.EntryMap -> Absyn.Exp -> Expty
-transExp tm em absyn = case runMonadTranS tm em (transExp' False absyn) of
-  Left a          -> error a
-  Right (expt,tl) -> expt
+transExp :: Env.TypeMap -> Env.EntryMap -> Absyn.Exp -> IO Expty
+transExp tm em absyn = do
+  v <- runMonadTranS tm em (transExp' False absyn)
+  case v of
+    Left a          -> error a
+    Right (expt,tl) -> return expt
 
-transExp' :: MonadTranS m => Bool -> Absyn.Exp -> m Expty
+transExp' :: MonadTranSIO m => Bool -> Absyn.Exp -> m Expty
 transExp' _ (Absyn.IntLit _ _)    = return (Expty {expr = (), typ = PT.INT})
 transExp' _ (Absyn.Nil _)         = return (Expty {expr = (), typ = PT.NIL})
 transExp' _ (Absyn.StringLit _ _) = return (Expty {expr = (), typ = PT.STRING})
@@ -146,13 +155,17 @@ transExp' inLoop (Absyn.Funcall fnSym args pos) = do
 transExp' inLoop (Absyn.Assign var toPut pos) = do
   VarTy {var = envVar} <- get >>= runReaderT (transVar var)
   Expty {typ = toPutType} <- transExp' inLoop toPut
-  undefined
+  case envVar of
+    Env.FunEntry {}                       -> throwError (show pos <> " can't set a function")
+    Env.VarEntry {Env.modifiable = False} -> throwError (show pos <> " variable is not modifiable")
+    Env.VarEntry {Env.ty = varType}       -> Expty {expr = (), typ = toPutType}
+                                            <$ checkSameTyp varType toPutType pos
 
 -- transVar doesn't go to Dec, so it's a reader
 transVar :: MonadTranR m => Absyn.Var -> m VarTy
 transVar = undefined
 
-transDec :: MonadTranS m => Absyn.Dec -> m ()
+transDec :: MonadTranSIO m => Absyn.Dec -> m ()
 transDec = undefined
 
 transTy :: Env.EntryMap -> Absyn.Exp -> PT.Type
@@ -160,7 +173,7 @@ transTy = undefined
 
 -- Helper functions----------------------------------------------------------------------------
 -- adds a symbol to the envEntry replacing what is there for this scope
-locallyInsert1 :: MonadTranS m => m b -> (S.Symbol, Env.Entry) -> m b
+locallyInsert1 :: MonadTranSIO m => m b -> (S.Symbol, Env.Entry) -> m b
 locallyInsert1 expression (symb, envEntry) = do
   Trans {tm = typeMap, em = envMap} <- get
   let val = envMap Map.!? symb
@@ -174,7 +187,7 @@ locallyInsert1 expression (symb, envEntry) = do
 
 -- could just be foldr locallyInsert1... however I don't trust my reasoning enough to do that
 -- adds symbols to the envEntry replacing what is there for this scope
-locallyInsert :: MonadTranS m => m b -> [(S.Symbol, Env.Entry)] -> m b
+locallyInsert :: MonadTranSIO m => m b -> [(S.Symbol, Env.Entry)] -> m b
 locallyInsert expression xs = do
   Trans {tm = typeMap, em = envMap} <- get
   let vals = fmap (\(symb,_) -> (symb, envMap Map.!? symb)) xs
@@ -187,7 +200,7 @@ locallyInsert expression xs = do
   return expResult
 
 -- Changes the Envrionment value... removing a value if there is none, else places the new value in the map
-changeEnvValue :: MonadState Translation m => S.Symbol -> Maybe Env.Entry -> m ()
+changeEnvValue :: MonadTranS m => S.Symbol -> Maybe Env.Entry -> m ()
 changeEnvValue symb val = do
   Trans {tm = typeMap, em = envMap} <- get
   case val of
@@ -195,7 +208,7 @@ changeEnvValue symb val = do
     Just val' -> put (Trans {tm = typeMap, em = Map.insert symb val' envMap})
 
 -- this function will eventually become deprecated once we handle the intermediate stage
-handleInfixExp :: MonadTranS m
+handleInfixExp :: MonadTranSIO m
                => (Expty -> Absyn.Pos -> m ()) -- A function like checkInt
                -> Bool                         -- whether we are inside a loop or not
                -> Absyn.Exp                    -- left side of infix
@@ -210,7 +223,7 @@ handleInfixExp f inLoop left right pos = do
   return (Expty {expr = (), typ = PT.INT})
 
 -- will become deprecated once we handle the intermediate stage
-handleInfixSame :: MonadTranS m => Bool -> Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
+handleInfixSame :: MonadTranSIO m => Bool -> Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
 handleInfixSame inLoop left right pos = do
   left'  <- transExp' inLoop left
   right' <- transExp' inLoop right
@@ -218,7 +231,7 @@ handleInfixSame inLoop left right pos = do
   return (Expty {expr = (), typ = PT.INT})
 
 handleInfixInt, handleInfixStrInt, handleInfixStr
-  :: MonadTranS m => Bool -> Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
+  :: MonadTranSIO m => Bool -> Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
 handleInfixInt    = handleInfixExp checkInt
 handleInfixStr    = handleInfixExp checkStr
 handleInfixStrInt = handleInfixExp checkStrInt
@@ -242,7 +255,7 @@ checkStrInt (Expty {typ = PT.STRING}) pos = return  ()
 checkStrInt (Expty {typ = PT.INT})    pos = return  ()
 checkStrInt (Expty {typ = _})         pos = throwError (show pos <> " integer or string required")
 
-checkSame :: (MonadError String m, Show a) => Expty -> Expty -> a -> m ()
+checkSame :: (MonadTranErr m, Show a) => Expty -> Expty -> a -> m ()
 checkSame (Expty {typ = x}) (Expty {typ = y}) = checkSameTyp x y
 
 -- A variant of checkSame that works on PT.Type
