@@ -40,30 +40,29 @@ data Translation = Trans { tm :: !Env.TypeMap
                          }  deriving Show
 
 
--- Eventually get MonadUnique to work
---type MonadTranUn  m = (MonadTranErr m, MonadUnique' m)
-
+-- MonadTranUn still doesn't work in every way... so if ordering gets bad... just go to MonadIO
+type MonadTranUn  m = (MonadTranErr m, MonadUnique m)
 type MonadTranErr m = (MonadError String m)
-type MonadTranS   m = (MonadState  Translation m, MonadTranErr m)
+type MonadTranS   m = (MonadState  Translation m, MonadTranUn m)
 type MonadTranR   m = (MonadReader Translation m, MonadTranErr m)
 type MonadTranSIO m = (MonadIO m, MonadTranS m)
 
--- runMonadTranS :: Env.TypeMap
---               -> Env.EntryMap
---               -> StateT
---                    Translation (Except e) a
---               -> IO (Either e (a, Translation))
-runMonadTranS tm em f = runExceptT (runStateT f trans) -- turn back to runExcept once Unique gets up
+
+-- once unique gets fix flip the order of runUniqueT and runStateT
+runMonadTranS :: Env.TypeMap
+              -> Env.EntryMap
+              -> UniqueT (StateT Translation (Except e)) a
+              -> Either e (a, Translation)
+runMonadTranS tm em f = runExcept (runStateT (runUniqueT f) trans) -- turn back to runExcept once Unique gets up
   where trans = Trans {tm = tm, em = em}
 
 transExp :: Env.TypeMap -> Env.EntryMap -> Absyn.Exp -> IO Expty
-transExp tm em absyn = do
-  v <- runMonadTranS tm em (transExp' False absyn)
-  case v of
+transExp tm em absyn =
+  case runMonadTranS tm em (transExp' False absyn) of
     Left a          -> error a
     Right (expt,tl) -> return expt
 
-transExp' :: MonadTranSIO m => Bool -> Absyn.Exp -> m Expty
+transExp' :: MonadTranS m => Bool -> Absyn.Exp -> m Expty
 transExp' _ (Absyn.IntLit _ _)    = return (Expty {expr = (), typ = PT.INT})
 transExp' _ (Absyn.Nil _)         = return (Expty {expr = (), typ = PT.NIL})
 transExp' _ (Absyn.StringLit _ _) = return (Expty {expr = (), typ = PT.STRING})
@@ -165,7 +164,7 @@ transExp' inLoop (Absyn.Assign var toPut pos) = do
 transVar :: MonadTranR m => Absyn.Var -> m VarTy
 transVar = undefined
 
-transDec :: MonadTranSIO m => Absyn.Dec -> m ()
+transDec :: MonadTranS m => Absyn.Dec -> m ()
 transDec = undefined
 
 transTy :: Env.EntryMap -> Absyn.Exp -> PT.Type
@@ -173,7 +172,7 @@ transTy = undefined
 
 -- Helper functions----------------------------------------------------------------------------
 -- adds a symbol to the envEntry replacing what is there for this scope
-locallyInsert1 :: MonadTranSIO m => m b -> (S.Symbol, Env.Entry) -> m b
+locallyInsert1 :: MonadTranS m => m b -> (S.Symbol, Env.Entry) -> m b
 locallyInsert1 expression (symb, envEntry) = do
   Trans {tm = typeMap, em = envMap} <- get
   let val = envMap Map.!? symb
@@ -187,7 +186,7 @@ locallyInsert1 expression (symb, envEntry) = do
 
 -- could just be foldr locallyInsert1... however I don't trust my reasoning enough to do that
 -- adds symbols to the envEntry replacing what is there for this scope
-locallyInsert :: MonadTranSIO m => m b -> [(S.Symbol, Env.Entry)] -> m b
+locallyInsert :: MonadTranS m => m b -> [(S.Symbol, Env.Entry)] -> m b
 locallyInsert expression xs = do
   Trans {tm = typeMap, em = envMap} <- get
   let vals = fmap (\(symb,_) -> (symb, envMap Map.!? symb)) xs
@@ -208,7 +207,7 @@ changeEnvValue symb val = do
     Just val' -> put (Trans {tm = typeMap, em = Map.insert symb val' envMap})
 
 -- this function will eventually become deprecated once we handle the intermediate stage
-handleInfixExp :: MonadTranSIO m
+handleInfixExp :: MonadTranS m
                => (Expty -> Absyn.Pos -> m ()) -- A function like checkInt
                -> Bool                         -- whether we are inside a loop or not
                -> Absyn.Exp                    -- left side of infix
@@ -223,7 +222,7 @@ handleInfixExp f inLoop left right pos = do
   return (Expty {expr = (), typ = PT.INT})
 
 -- will become deprecated once we handle the intermediate stage
-handleInfixSame :: MonadTranSIO m => Bool -> Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
+handleInfixSame :: MonadTranS m => Bool -> Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
 handleInfixSame inLoop left right pos = do
   left'  <- transExp' inLoop left
   right' <- transExp' inLoop right
@@ -231,7 +230,7 @@ handleInfixSame inLoop left right pos = do
   return (Expty {expr = (), typ = PT.INT})
 
 handleInfixInt, handleInfixStrInt, handleInfixStr
-  :: MonadTranSIO m => Bool -> Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
+  :: MonadTranS m => Bool -> Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
 handleInfixInt    = handleInfixExp checkInt
 handleInfixStr    = handleInfixExp checkStr
 handleInfixStrInt = handleInfixExp checkStrInt
