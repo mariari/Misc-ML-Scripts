@@ -7,9 +7,7 @@ module Semantic.Analysis where
 import qualified ProgramTypes         as PT
 import qualified AbstractSyntax       as Absyn
 import qualified Semantic.Environment as Env
-import           Control.Monad.Unique
 
-import           Data.Unique
 import           Data.Monoid((<>))
 import           Control.Monad
 import qualified Data.Symbol as S
@@ -27,7 +25,8 @@ data Expty = Expty { expr :: !TranslateExp
                    } deriving Show
 
 data VarTy = VarTy { var  :: !Env.Entry
-                   , expr :: !TranslateExp}
+                   , expr :: !TranslateExp
+                   } deriving Show
 
 varTytoExpTy (VarTy {var = var, expr = expr}) =
   let typ = case var of
@@ -35,32 +34,35 @@ varTytoExpTy (VarTy {var = var, expr = expr}) =
         Env.FunEntry {Env.result = ty} -> ty
   in Expty {expr = expr, typ = typ}
 
-data Translation = Trans { tm :: !Env.TypeMap
-                         , em :: !Env.EntryMap
+data Translation = Trans { tm   :: !Env.TypeMap
+                         , em   :: !Env.EntryMap
+                         , uniq :: !Int
                          }  deriving Show
 
+-- grabs a unqiue value from teh Translation state 
+fresh :: MonadState Translation m => m Int
+fresh = do
+  trans@(Trans {uniq = u}) <- get
+  put (trans {uniq = succ u})
+  return u
 
--- MonadTranUn still doesn't work in every way... so if ordering gets bad... just go to MonadIO
-type MonadTranUn  m = (MonadTranErr m, MonadUnique m)
 type MonadTranErr m = (MonadError String m)
-type MonadTranS   m = (MonadState  Translation m, MonadTranUn m)
+type MonadTranS   m = (MonadState  Translation m, MonadTranErr m)
 type MonadTranR   m = (MonadReader Translation m, MonadTranErr m)
 type MonadTranSIO m = (MonadIO m, MonadTranS m)
 
-
--- once unique gets fix flip the order of runUniqueT and runStateT
 runMonadTranS :: Env.TypeMap
               -> Env.EntryMap
-              -> UniqueT (StateT Translation (Except e)) a
+              -> (StateT Translation (Except e)) a
               -> Either e (a, Translation)
-runMonadTranS tm em f = runExcept (runStateT (runUniqueT f) trans) -- turn back to runExcept once Unique gets up
-  where trans = Trans {tm = tm, em = em}
+runMonadTranS tm em f = runExcept (runStateT f trans) -- turn back to runExcept once Unique gets up
+  where trans = Trans {tm = tm, em = em, uniq = 0}
 
-transExp :: Env.TypeMap -> Env.EntryMap -> Absyn.Exp -> IO Expty
+transExp :: Env.TypeMap -> Env.EntryMap -> Absyn.Exp -> Expty
 transExp tm em absyn =
   case runMonadTranS tm em (transExp' False absyn) of
     Left a          -> error a
-    Right (expt,tl) -> return expt
+    Right (expt,tl) -> expt
 
 transExp' :: MonadTranS m => Bool -> Absyn.Exp -> m Expty
 transExp' _ (Absyn.IntLit _ _)    = return (Expty {expr = (), typ = PT.INT})
@@ -159,6 +161,8 @@ transExp' inLoop (Absyn.Assign var toPut pos) = do
     Env.VarEntry {Env.modifiable = False} -> throwError (show pos <> " variable is not modifiable")
     Env.VarEntry {Env.ty = varType}       -> Expty {expr = (), typ = toPutType}
                                             <$ checkSameTyp varType toPutType pos
+transExp' inLoop (Absyn.ArrCreate tyid length content pos) = do
+  undefined
 
 -- transVar doesn't go to Dec, so it's a reader
 transVar :: MonadTranR m => Absyn.Var -> m VarTy
@@ -201,10 +205,10 @@ locallyInsert expression xs = do
 -- Changes the Envrionment value... removing a value if there is none, else places the new value in the map
 changeEnvValue :: MonadTranS m => S.Symbol -> Maybe Env.Entry -> m ()
 changeEnvValue symb val = do
-  Trans {tm = typeMap, em = envMap} <- get
+  trans@(Trans {em = envMap}) <- get
   case val of
-    Nothing   -> put (Trans {tm = typeMap, em = Map.delete symb envMap})
-    Just val' -> put (Trans {tm = typeMap, em = Map.insert symb val' envMap})
+    Nothing   -> put (trans {em = Map.delete symb envMap})
+    Just val' -> put (trans {em = Map.insert symb val' envMap})
 
 -- this function will eventually become deprecated once we handle the intermediate stage
 handleInfixExp :: MonadTranS m
@@ -245,6 +249,10 @@ checkNil :: (MonadTranErr m, Show a) => Expty -> a -> m ()
 checkNil (Expty {typ = PT.NIL}) pos = return ()
 checkNil (Expty {typ = _})      pos = throwError (show pos <> " null required")
 
+checkArr :: (MonadTranErr m, Show a) => Expty -> a -> m ()
+checkArr (Expty {typ = PT.ARRAY _ _}) pos = return ()
+checkArr (Expty {typ = _})            pos = throwError (show pos <> " Array type required")
+
 checkStr :: (MonadTranErr m, Show a) => Expty -> a -> m ()
 checkStr (Expty {typ = PT.STRING}) pos = return  ()
 checkStr (Expty {typ = _})         pos = throwError (show pos <> " string required")
@@ -256,6 +264,7 @@ checkStrInt (Expty {typ = _})         pos = throwError (show pos <> " integer or
 
 checkSame :: (MonadTranErr m, Show a) => Expty -> Expty -> a -> m ()
 checkSame (Expty {typ = x}) (Expty {typ = y}) = checkSameTyp x y
+
 
 -- A variant of checkSame that works on PT.Type
 checkSameTyp :: (MonadTranErr m, Show a) => PT.Type -> PT.Type -> a -> m ()
