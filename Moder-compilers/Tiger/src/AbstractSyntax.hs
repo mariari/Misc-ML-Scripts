@@ -28,7 +28,10 @@ data Exp = Var Var
          | Let [Dec] [Exp]           {-# UNPACK #-} !Pos
          deriving Show
 
-data Field = Field !Symbol Exp {-# UNPACK #-} !Pos deriving (Show)
+data Field = Field { fieldTyp :: !Symbol
+                   , expr     :: Exp
+                   , pos      :: {-# UNPACK #-} !Pos
+                   } deriving Show
 
 data FieldDec = FieldDec !Symbol !Symbol {-# UNPACK #-} !Pos deriving (Show)
 

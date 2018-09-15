@@ -10,7 +10,8 @@ import qualified Semantic.Environment as Env
 
 import           Data.Monoid((<>))
 import           Control.Monad
-import qualified Data.Symbol as S
+import qualified Data.List       as List
+import qualified Data.Symbol     as S
 import qualified Data.Map.Strict as Map -- we are use ordering in symbols, so we can't use HashMap
 import           Control.Monad.State.Lazy
 import           Control.Monad.Reader
@@ -39,7 +40,7 @@ data Translation = Trans { tm   :: !Env.TypeMap
                          , uniq :: !Int
                          }  deriving Show
 
--- grabs a unqiue value from teh Translation state 
+-- grabs a unique value from the Translation state
 fresh :: MonadState Translation m => m Int
 fresh = do
   trans@(Trans {uniq = u}) <- get
@@ -97,15 +98,6 @@ transExp' inLoop (Absyn.Sequence xs pos) = last <$> traverse (transExp' inLoop) 
 transExp' inLoop (Absyn.Break pos)
   | inLoop    = return (Expty {expr = (), typ = PT.NIL})
   | otherwise = throwError (show pos <> " break needs to be used inside a loop")
--- fix this case... should pop the changes made by transDec
--- and this case should be able to handle mutally recursive functions
--- do this by filtering out TypeDec for add TypeDec
--- and grab the rest by doing the opposite filter, and then just call traverse endVal!
-transExp' inLoop (Absyn.Let decs exps pos) = do
-  traverse transDec decs
-  case exps of
-    []   -> return (Expty {expr = (), typ = PT.NIL})
-    exps -> last <$> traverse (transExp' inLoop) exps
 
 transExp' inLoop (Absyn.While pred body pos) = do
   pred' <- transExp' inLoop pred
@@ -162,7 +154,45 @@ transExp' inLoop (Absyn.Assign var toPut pos) = do
     Env.VarEntry {Env.ty = varType}       -> Expty {expr = (), typ = toPutType}
                                             <$ checkSameTyp varType toPutType pos
 transExp' inLoop (Absyn.ArrCreate tyid length content pos) = do
-  undefined
+  Trans {tm = typeMap} <- get
+  transExp' inLoop length >>= (`checkInt` pos)
+  case typeMap Map.!? tyid of
+    Nothing -> throwError (show pos <> " array type " <> S.unintern tyid <> " undefined")
+    Just (PT.ARRAY typ uniqueId) -> do
+      Expty {typ = contentType} <- transExp' inLoop content
+      checkSameTyp typ contentType pos
+      return (Expty {expr = (), typ = (PT.ARRAY typ uniqueId)})
+    Just x -> throwError (show pos <> " " <> S.unintern tyid
+                         <> " is not of type array, but of type " <> show x)
+transExp' inLoop (Absyn.RecCreate tyid givens pos) = do
+  Trans {tm = typeMap} <- get
+  case typeMap Map.!? tyid of
+    Nothing -> throwError (show pos <> " record " <> S.unintern tyid <> " undefined")
+    Just (PT.RECORD syms uniqueType) -> do
+      let sortedRecType = List.sortOn fst syms -- with these two sorted, we can just compare
+          sortedGivens  = List.sortOn Absyn.fieldTyp givens -- and error from there
+      sortedGivenTypes <- traverse (\ (Absyn.Field sym exp pos) -> do
+                                       Expty {typ = exType} <- transExp' inLoop exp
+                                       return (sym, exType, pos)
+                                   ) sortedGivens
+      zipWithM_ (\ (_, recType)
+                   (_, givenType, p) -> checkSameTyp recType givenType p)
+                sortedRecType
+                sortedGivenTypes
+      return (Expty {expr = (), typ = PT.RECORD syms uniqueType})
+    Just x -> throwError (show pos <> " " <> S.unintern tyid
+                         <> " is not of type record, but of type " <> show x)
+-- fix this case... should pop the changes made by transDec
+-- and this case should be able to handle mutally recursive functions
+-- do this by filtering out TypeDec for add TypeDec
+-- and grab the rest by doing the opposite filter, and then just call traverse endVal!
+transExp' inLoop (Absyn.Let decs exps pos) = do
+--  let typeDec 
+  traverse transDec decs
+  case exps of
+    []   -> return (Expty {expr = (), typ = PT.NIL})
+    exps -> last <$> traverse (transExp' inLoop) exps
+
 
 -- transVar doesn't go to Dec, so it's a reader
 transVar :: MonadTranR m => Absyn.Var -> m VarTy
@@ -171,7 +201,7 @@ transVar = undefined
 transDec :: MonadTranS m => Absyn.Dec -> m ()
 transDec = undefined
 
-transTy :: Env.EntryMap -> Absyn.Exp -> PT.Type
+transTy :: Env.EntryMap -> Absyn.Ty -> PT.Type
 transTy = undefined
 
 -- Helper functions----------------------------------------------------------------------------
@@ -249,9 +279,9 @@ checkNil :: (MonadTranErr m, Show a) => Expty -> a -> m ()
 checkNil (Expty {typ = PT.NIL}) pos = return ()
 checkNil (Expty {typ = _})      pos = throwError (show pos <> " null required")
 
-checkArr :: (MonadTranErr m, Show a) => Expty -> a -> m ()
-checkArr (Expty {typ = PT.ARRAY _ _}) pos = return ()
-checkArr (Expty {typ = _})            pos = throwError (show pos <> " Array type required")
+checkArr :: (MonadTranErr m, Show a) => Expty -> a -> m PT.Type
+checkArr (Expty {typ = PT.ARRAY typ _}) pos = return typ
+checkArr (Expty {typ = _})              pos = throwError (show pos <> " Array type required")
 
 checkStr :: (MonadTranErr m, Show a) => Expty -> a -> m ()
 checkStr (Expty {typ = PT.STRING}) pos = return  ()
@@ -271,3 +301,7 @@ checkSameTyp :: (MonadTranErr m, Show a) => PT.Type -> PT.Type -> a -> m ()
 checkSameTyp x y pos
   | x == y    = return ()
   | otherwise = throwError (show pos <> " given a " <> show x <> " needs to be the same type as " <> show y)
+
+isTypeDeclaration :: Absyn.Dec -> Bool
+isTypeDeclaration (Absyn.TypeDec _ _ _) = True
+isTypeDeclaration _                     = False
