@@ -16,13 +16,13 @@ data Entry = VarEntry {ty         :: !PT.Type
                       ,result  :: !PT.Type}
            deriving Show
 
-baseTenv :: TypeMap
-baseTenv = Map.fromList [(S.intern "int",    PT.INT)
+baseTmap :: TypeMap
+baseTmap = Map.fromList [(S.intern "int",    PT.INT)
                         ,(S.intern "string", PT.STRING)
                         ,(S.intern "nil",    PT.NIL)]
 
-baseVenv :: EntryMap
-baseVenv = Map.fromList [(S.intern "print",     FunEntry [PT.STRING] PT.UNIT)
+baseEmap :: EntryMap
+baseEmap = Map.fromList [(S.intern "print",     FunEntry [PT.STRING] PT.UNIT)
                         ,(S.intern "flush",     FunEntry []          PT.UNIT)
                         ,(S.intern "getchar",   FunEntry []          PT.STRING)
                         ,(S.intern "ord",       FunEntry [PT.STRING] PT.INT)

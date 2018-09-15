@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DuplicateRecordFields #-}
@@ -48,30 +49,27 @@ fresh = do
   return u
 
 type MonadTranErr m = (MonadError String m)
-type MonadTranS   m = (MonadState  Translation m, MonadTranErr m)
-type MonadTranR   m = (MonadReader Translation m, MonadTranErr m)
-type MonadTranSIO m = (MonadIO m, MonadTranS m)
+type MonadTran    m = (MonadState  Translation m, MonadTranErr m)
+type MonadTranIO  m = (MonadIO m, MonadTran m)
 
-runMonadTranS :: Env.TypeMap
-              -> Env.EntryMap
-              -> (StateT Translation (Except e)) a
-              -> Either e (a, Translation)
-runMonadTranS tm em f = runExcept (runStateT f trans) -- turn back to runExcept once Unique gets up
+runMonadTran :: Env.TypeMap
+             -> Env.EntryMap
+             -> (StateT Translation (Except e)) a
+             -> Either e (a, Translation)
+runMonadTran tm em f = runExcept (runStateT f trans) -- turn back to runExcept once Unique gets up
   where trans = Trans {tm = tm, em = em, uniq = 0}
 
 transExp :: Env.TypeMap -> Env.EntryMap -> Absyn.Exp -> Expty
 transExp tm em absyn =
-  case runMonadTranS tm em (transExp' False absyn) of
+  case runMonadTran tm em (transExp' False absyn) of
     Left a          -> error a
     Right (expt,tl) -> expt
 
-transExp' :: MonadTranS m => Bool -> Absyn.Exp -> m Expty
+transExp' :: MonadTran m => Bool -> Absyn.Exp -> m Expty
 transExp' _ (Absyn.IntLit _ _)    = return (Expty {expr = (), typ = PT.INT})
 transExp' _ (Absyn.Nil _)         = return (Expty {expr = (), typ = PT.NIL})
 transExp' _ (Absyn.StringLit _ _) = return (Expty {expr = (), typ = PT.STRING})
-transExp' _ (Absyn.Var x)         = do
-  env <- get
-  varTytoExpTy <$> runReaderT (transVar x) env
+transExp' _ (Absyn.Var x)         = varTytoExpTy <$> transVar x
 
 transExp' inLoop (Absyn.Infix' left x right pos) = case x of
   Absyn.Minus -> handleInfixInt inLoop left right pos
@@ -133,7 +131,7 @@ transExp' inLoop (Absyn.IfThen pred then' pos) = do
   return (Expty {expr = (), typ = PT.NIL})
 
 transExp' inLoop (Absyn.Funcall fnSym args pos) = do
-  Trans {tm = typeMap, em = envMap} <- get
+  Trans {em = envMap} <- get
   case envMap Map.!? fnSym of
     Nothing                 -> throwError (show pos <> " function " <> S.unintern fnSym <> " is not defined")
     Just (Env.VarEntry _ _) -> throwError (show pos <> " variable " <> S.unintern fnSym <> " is not a function")
@@ -146,7 +144,7 @@ transExp' inLoop (Absyn.Funcall fnSym args pos) = do
       return (Expty {expr = (), typ = result})
 
 transExp' inLoop (Absyn.Assign var toPut pos) = do
-  VarTy {var = envVar} <- get >>= runReaderT (transVar var)
+  VarTy {var = envVar} <- transVar var
   Expty {typ = toPutType} <- transExp' inLoop toPut
   case envVar of
     Env.FunEntry {}                       -> throwError (show pos <> " can't set a function")
@@ -155,8 +153,9 @@ transExp' inLoop (Absyn.Assign var toPut pos) = do
                                             <$ checkSameTyp varType toPutType pos
 transExp' inLoop (Absyn.ArrCreate tyid length content pos) = do
   Trans {tm = typeMap} <- get
-  transExp' inLoop length >>= (`checkInt` pos)
-  case typeMap Map.!? tyid of
+  lengthExp            <- transExp' inLoop length
+  checkInt lengthExp pos
+  case actualType <$> typeMap Map.!? tyid of -- actualType <$> should be removed if we never get a NAME back
     Nothing -> throwError (show pos <> " array type " <> S.unintern tyid <> " undefined")
     Just (PT.ARRAY typ uniqueId) -> do
       Expty {typ = contentType} <- transExp' inLoop content
@@ -164,9 +163,10 @@ transExp' inLoop (Absyn.ArrCreate tyid length content pos) = do
       return (Expty {expr = (), typ = (PT.ARRAY typ uniqueId)})
     Just x -> throwError (show pos <> " " <> S.unintern tyid
                          <> " is not of type array, but of type " <> show x)
+
 transExp' inLoop (Absyn.RecCreate tyid givens pos) = do
   Trans {tm = typeMap} <- get
-  case typeMap Map.!? tyid of
+  case actualType <$> typeMap Map.!? tyid of -- actualType <$> should be removed if we never get a NAME back
     Nothing -> throwError (show pos <> " record " <> S.unintern tyid <> " undefined")
     Just (PT.RECORD syms uniqueType) -> do
       let sortedRecType = List.sortOn fst syms -- with these two sorted, we can just compare
@@ -187,18 +187,54 @@ transExp' inLoop (Absyn.RecCreate tyid givens pos) = do
 -- do this by filtering out TypeDec for add TypeDec
 -- and grab the rest by doing the opposite filter, and then just call traverse endVal!
 transExp' inLoop (Absyn.Let decs exps pos) = do
---  let typeDec 
+--  let typeDec
   traverse transDec decs
   case exps of
     []   -> return (Expty {expr = (), typ = PT.NIL})
     exps -> last <$> traverse (transExp' inLoop) exps
 
+transVar :: MonadTran m => Absyn.Var -> m VarTy
+transVar (Absyn.SimpleVar sym pos) = do
+  Trans {em = envMap} <- get
+  case envMap Map.!? sym of
+    Nothing ->
+      throwError (show pos <> " " <> S.unintern sym <> " is not defined")
+    Just (Env.VarEntry {ty, modifiable}) ->
+      return $ VarTy { var = Env.VarEntry{ty = actualType ty, modifiable = modifiable}
+                     , expr = ()
+                     }
+    Just (Env.FunEntry {formals, result}) -> -- the book would throw an error... might have to change
+      return $ VarTy { var  = Env.FunEntry { formals = fmap actualType formals
+                                           , result  = actualType result }
+                     , expr = ()
+                     }
+-- this is why we need to be in state and not rader
+transVar (Absyn.Subscript arrayType expInt pos) = do
+  intExpty <- transExp' False expInt -- not going to allow breaking in an array lookup!
+  checkInt intExpty pos
+  VarTy {var,expr} <- transVar arrayType
+  case var of
+    Env.FunEntry {} ->
+      throwError (show pos <> " tried to do array lookup on a function")
+    Env.VarEntry {modifiable, ty} -> do
+      let actualTy = actualType ty
+      checkArrTyp actualTy pos
+      return $ VarTy { var = Env.VarEntry { ty = actualTy
+                                          , modifiable = modifiable }
+                     , expr = expr }
 
--- transVar doesn't go to Dec, so it's a reader
-transVar :: MonadTranR m => Absyn.Var -> m VarTy
-transVar = undefined
+transVar (Absyn.FieldVar recordType field pos) = do
+  VarTy {var,expr} <- transVar recordType
+  case var of
+    Env.FunEntry {} -> throwError (show pos <> " tried to do record lookup on a function")
+    Env.VarEntry {modifiable, ty} -> do
+      let actualTy = actualType ty
+      checkRecType actualTy pos
+      return $ VarTy { var = Env.VarEntry { ty = actualTy
+                                          , modifiable = modifiable}
+                     , expr = expr }
 
-transDec :: MonadTranS m => Absyn.Dec -> m ()
+transDec :: MonadTran m => Absyn.Dec -> m ()
 transDec = undefined
 
 transTy :: Env.EntryMap -> Absyn.Ty -> PT.Type
@@ -206,7 +242,7 @@ transTy = undefined
 
 -- Helper functions----------------------------------------------------------------------------
 -- adds a symbol to the envEntry replacing what is there for this scope
-locallyInsert1 :: MonadTranS m => m b -> (S.Symbol, Env.Entry) -> m b
+locallyInsert1 :: MonadTran m => m b -> (S.Symbol, Env.Entry) -> m b
 locallyInsert1 expression (symb, envEntry) = do
   Trans {tm = typeMap, em = envMap} <- get
   let val = envMap Map.!? symb
@@ -220,7 +256,7 @@ locallyInsert1 expression (symb, envEntry) = do
 
 -- could just be foldr locallyInsert1... however I don't trust my reasoning enough to do that
 -- adds symbols to the envEntry replacing what is there for this scope
-locallyInsert :: MonadTranS m => m b -> [(S.Symbol, Env.Entry)] -> m b
+locallyInsert :: MonadTran m => m b -> [(S.Symbol, Env.Entry)] -> m b
 locallyInsert expression xs = do
   Trans {tm = typeMap, em = envMap} <- get
   let vals = fmap (\(symb,_) -> (symb, envMap Map.!? symb)) xs
@@ -232,8 +268,8 @@ locallyInsert expression xs = do
   traverse (uncurry changeEnvValue) vals
   return expResult
 
--- Changes the Envrionment value... removing a value if there is none, else places the new value in the map
-changeEnvValue :: MonadTranS m => S.Symbol -> Maybe Env.Entry -> m ()
+-- Changes the Environment value... removing a value if there is none, else places the new value in the map
+changeEnvValue :: MonadTran m => S.Symbol -> Maybe Env.Entry -> m ()
 changeEnvValue symb val = do
   trans@(Trans {em = envMap}) <- get
   case val of
@@ -241,7 +277,7 @@ changeEnvValue symb val = do
     Just val' -> put (trans {em = Map.insert symb val' envMap})
 
 -- this function will eventually become deprecated once we handle the intermediate stage
-handleInfixExp :: MonadTranS m
+handleInfixExp :: MonadTran m
                => (Expty -> Absyn.Pos -> m ()) -- A function like checkInt
                -> Bool                         -- whether we are inside a loop or not
                -> Absyn.Exp                    -- left side of infix
@@ -256,7 +292,7 @@ handleInfixExp f inLoop left right pos = do
   return (Expty {expr = (), typ = PT.INT})
 
 -- will become deprecated once we handle the intermediate stage
-handleInfixSame :: MonadTranS m => Bool -> Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
+handleInfixSame :: MonadTran m => Bool -> Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
 handleInfixSame inLoop left right pos = do
   left'  <- transExp' inLoop left
   right' <- transExp' inLoop right
@@ -264,7 +300,7 @@ handleInfixSame inLoop left right pos = do
   return (Expty {expr = (), typ = PT.INT})
 
 handleInfixInt, handleInfixStrInt, handleInfixStr
-  :: MonadTranS m => Bool -> Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
+  :: MonadTran m => Bool -> Absyn.Exp -> Absyn.Exp -> Absyn.Pos -> m Expty
 handleInfixInt    = handleInfixExp checkInt
 handleInfixStr    = handleInfixExp checkStr
 handleInfixStrInt = handleInfixExp checkStrInt
@@ -282,6 +318,14 @@ checkNil (Expty {typ = _})      pos = throwError (show pos <> " null required")
 checkArr :: (MonadTranErr m, Show a) => Expty -> a -> m PT.Type
 checkArr (Expty {typ = PT.ARRAY typ _}) pos = return typ
 checkArr (Expty {typ = _})              pos = throwError (show pos <> " Array type required")
+
+checkArrTyp :: (MonadTranErr m, Show a) => PT.Type -> a -> m ()
+checkArrTyp (PT.ARRAY typ _) pos = return ()
+checkArrTyp _                pos = throwError (show pos <> " Array type required")
+
+checkRecType :: (MonadTranErr m, Show a) => PT.Type -> a -> m ()
+checkRecType (PT.RECORD _ _) pos = return ()
+checkRecType _               pos = throwError (show pos <> " record type required")
 
 checkStr :: (MonadTranErr m, Show a) => Expty -> a -> m ()
 checkStr (Expty {typ = PT.STRING}) pos = return  ()
@@ -305,3 +349,10 @@ checkSameTyp x y pos
 isTypeDeclaration :: Absyn.Dec -> Bool
 isTypeDeclaration (Absyn.TypeDec _ _ _) = True
 isTypeDeclaration _                     = False
+
+-- goes through the name lookup and gives back the actual type
+-- will give back a name only if it doesn't point to anything.
+actualType :: PT.Type -> PT.Type
+actualType (PT.NAME sym (Just typ)) = actualType typ
+actualType typ                      = typ
+
