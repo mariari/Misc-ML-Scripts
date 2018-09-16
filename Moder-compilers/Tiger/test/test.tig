@@ -1,9 +1,0 @@
-let function f(a : int, b:int, c : int) =
-         (print_int(a+c);
-          let var j := a+b
-              var a := "test"
-            in print(a); print_int(j)
-          end;
-          print_int(b)
-         )
-in nil end
