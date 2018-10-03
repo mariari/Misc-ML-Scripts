@@ -1,4 +1,4 @@
-(* open Batteries *)
+(* open Core *)
 
 type symbol = string
 
