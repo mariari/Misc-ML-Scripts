@@ -32,7 +32,7 @@ foldTreeR f acc (Branch a b c)                         = newF (f b (newF acc f (
 
 foldTreeL f acc Empty                                  = acc
 foldTreeL f acc (Node a)                               = f acc a
-foldTreeL f acc (Branch a@(Branch {}) b c@(Branch {})) = foldTreeL f (foldTreeL f (f acc b) a) c
+foldTreeL f acc (Branch a@(Branch {}) b c@(Branch {})) = foldTreeL f (f (foldTreeL f acc a) b) c
 foldTreeL f acc (Branch a@(Branch {}) b c)             = (newFL (f (foldTreeL f acc a) b) f (foldHelp c))
 foldTreeL f acc (Branch a b c@(Branch {}))             = foldTreeL f (f (newFL acc f (foldHelp a)) b) c
 foldTreeL f acc (Branch a b c)                         = newFL (f (newFL acc f (foldHelp a)) b) f (foldHelp c)
