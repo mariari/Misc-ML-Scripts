@@ -8,9 +8,9 @@ let coprime a b = gcd a b = 1
 
 (* problem 34 *)
 let phi_old n =
-  List.range 0 n
-  |> List.map ~f:(coprime n)
-  |> List.count ~f:ident
+  Sequence.range 0 n
+  |> Sequence.map ~f:(coprime n)
+  |> Sequence.count ~f:ident
 
 (* problem 36 - use CPS later, and send in a prime list later *)
 let factors n =
@@ -26,16 +26,28 @@ let factors n =
         aux (succ x) n
   in aux 2 n
 
+(* book solution... for testing speed *)
+let phi_site n =
+  let rec count_coprime acc d =
+    if d < n then count_coprime (if coprime n d then acc + 1 else acc) (d + 1)
+    else acc
+  in
+  if n = 1 then 1 else count_coprime 0 1
+
 
 let phi n =
   factors n
-  |> List.fold_right ~f:(fun (x, num) acc -> Int.(acc * x - 1 * pow x (num - 1)))
-                     ~init: 1
+  |> List.fold_left ~f:(fun acc (x, num) -> Int.(acc * (x - 1) * pow x (num - 1)))
+                    ~init: 1
 
-(* let () =
- *   Command.run (Bench.make_command [
- *                  Bench.Test.create ~name:"phi-fast"
- *                    (fun () -> phi 9999999);
- *                  Bench.Test.create ~name:"phi-old"
- *                    (fun () -> phi_old 9999999)
- *               ]) *)
+(* not surpassing that phi_site is 3x faster and has the lowest alloc rate *)
+(* since converting phi_old to Sequence, it's only slightly slower *)
+let () =
+  Command.run (Bench.make_command [
+                 Bench.Test.create ~name:"phi-fast"
+                                   (fun () -> phi 99999);
+                 Bench.Test.create ~name:"phi-old"
+                                   (fun () -> phi_old 99999);
+                 Bench.Test.create ~name:"phi-site"
+                                   (fun () -> phi_site 99999)
+              ])
