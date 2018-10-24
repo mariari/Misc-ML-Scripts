@@ -6,6 +6,7 @@ import Data.Maybe
 import Data.Traversable
 import Data.Foldable
 import Control.Monad
+import Data.List
 
 data Tree a = Node a
             | Empty
@@ -68,3 +69,33 @@ isBalanced = maybe False (const True) . depth 0
       Just (max dR dL)
     depth i (Node _) = Just i
     depth i Empty    = Just i
+
+
+splitWith :: (a -> Bool) -> [a] -> ([a], [a])
+splitWith p xs = recurse [] xs
+  where
+    recurse acc [] = (reverse acc, [])
+    recurse acc (x:xs)
+      | p x       = (reverse acc, xs)
+      | otherwise = recurse (x:acc) xs
+
+-- the first list is the in order list, the 2nd is the pre order list
+preInOrder :: Eq a => [a] -> [a] -> Tree a
+preInOrder is []     = Empty -- the lists should be the same size
+preInOrder is [p]    = Node p
+preInOrder is (p:ps) = Branch (preInOrder l (ps `intersect` l)) p (preInOrder r (ps `intersect` r))
+   where
+     (l,r) = splitWith (== p) is
+
+-- only works for an ordered tree (often called BST)
+preOrder :: Ord a => [a] -> Tree a
+preOrder xs = fst (recurse xs)
+  where
+    recurse [x]      = (Node x, [])
+    recurse []       = (Empty, [])
+    recurse (x:y:xs)
+      | y < x     = (Branch nodeL x nodeR, remaining')
+      | otherwise = (Node x, (y:xs))
+      where
+        (nodeL, remaning)   = recurse (y:xs)
+        (nodeR, remaining') = recurse remaning
