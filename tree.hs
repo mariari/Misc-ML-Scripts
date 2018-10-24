@@ -60,7 +60,7 @@ foldHelp Empty    = Nothing
 foldHelp _        = error "branch should not call this"
 
 isBalanced :: Tree a -> Bool
-isBalanced = maybe False (const True) . depth 0
+isBalanced = isJust . depth 0
   where
     depth i (Branch a _ c) = do
       dL <- depth (i + 1) a
@@ -83,9 +83,10 @@ splitWith p xs = recurse [] xs
 preInOrder :: Eq a => [a] -> [a] -> Tree a
 preInOrder is []     = Empty -- the lists should be the same size
 preInOrder is [p]    = Node p
-preInOrder is (p:ps) = Branch (preInOrder l (ps `intersect` l)) p (preInOrder r (ps `intersect` r))
+preInOrder is (p:ps) = Branch (preInOrder l (take sizeL ps)) p (preInOrder r (drop sizeL ps))
    where
      (l,r) = splitWith (== p) is
+     sizeL = length l -- we can view this as how many elements have gone to the left partition
 
 -- only works for an ordered tree (often called BST)
 preOrder :: Ord a => [a] -> Tree a
