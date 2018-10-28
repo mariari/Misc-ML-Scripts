@@ -1,4 +1,6 @@
-import Data.Monoid
+import Data.Semigroup
+import Control.Applicative
+import Data.Char (isSpace)
 -- Question from Guy Steele
 
 -- maxgen is just a poor mans scanl!
@@ -7,6 +9,7 @@ maxGen _   []     = []
 maxGen key (x:xs) = foldl func [(x, key x)] xs
   where
     func ys@((val,greatest):_) x = (x, max greatest (key val)) : ys
+    func [] _ = error "should never happen"
 
 maxLeft :: Ord t1 => (t -> t1) -> [t] -> [(t, t1)]
 maxLeft = (reverse .) . maxGen
@@ -64,3 +67,69 @@ skyLine = foldr f [] . fmap rectToList
 
 --skyLine given
 --[0,0,0,10,15,15,15,15,12,12,12,12,12,0,0,10,10,10,10,10,10,9,9,9,9]
+
+-- beginner number to string problem----------------------------------------------------------------
+trimEnd :: String -> String
+trimEnd = reverse . dropWhile isSpace . reverse
+
+concatExtension :: Semigroup a => a -> a -> a -> a
+concatExtension s x y = x <> s <> y
+
+convertSingleNoZero :: Char -> Maybe String
+convertSingleNoZero '0' = Just ""
+convertSingleNoZero x   = convertSingle x
+
+convertSingle :: Char -> Maybe String
+convertSingle '0' = Just "zero"
+convertSingle '1' = Just "one"
+convertSingle '2' = Just "two"
+convertSingle '3' = Just "three"
+convertSingle '4' = Just "four"
+convertSingle '5' = Just "five"
+convertSingle '6' = Just "six"
+convertSingle '7' = Just "seven"
+convertSingle '8' = Just "eight"
+convertSingle '9' = Just "nine"
+convertSingle _   = Nothing
+
+convertTensNoZero :: String -> Maybe String
+convertTensNoZero ['0',y] = convertSingleNoZero y
+convertTensNoZero xs      = convertTens xs
+
+convertTens :: String -> Maybe String
+convertTens ['0',y] = convertSingle y
+convertTens "10"    = Just "ten"
+convertTens "11"    = Just "eleven"
+convertTens "12"    = Just "twelve"
+convertTens "13"    = Just "thirteen"
+convertTens "15"    = Just "fifteen"
+convertTens ['1',y] = (<> "ty") <$> convertSingle y
+convertTens ['2',y] = (trimEnd . ("twenty " <>)) <$> convertSingleNoZero y
+convertTens ['3',y] = (trimEnd . ("thirty " <>)) <$> convertSingleNoZero y
+convertTens ['5',y] = (trimEnd . ("fifty "  <>)) <$> convertSingleNoZero y
+convertTens [x,'0'] = (<> "ty") <$> convertSingle x
+convertTens [x,y]   = concatExtension "ty " <$> convertSingle x <*> convertSingle y
+convertTens _       = Nothing
+
+convertHundreds :: String -> Maybe String
+convertHundreds ('0':xs) = convertTens xs
+convertHundreds (x:xs)   = concatExtension " hundred " <$> convertSingle x <*> convertTensNoZero xs
+convertHundreds []       = Nothing
+
+thousandExtension = concatExtension " thousand "
+
+convertThousands 6 xs     = thousandExtension <$> convertHundreds (take 3 xs) <*> convertHundreds (drop 3 xs)
+convertThousands 5 xs     = thousandExtension <$> convertTens     (take 2 xs) <*> convertHundreds (drop 2 xs)
+convertThousands 4 (x:xs) = thousandExtension <$> convertSingle x <*> convertHundreds xs
+convertThousands l xs     = convertHundreds xs
+
+convert :: (Num p, Show p) => p -> Maybe [Char]
+convert num
+  | len >= 4  = convertThousands len showN
+  | len == 3  = convertHundreds showN
+  | len == 2  = convertTens showN
+  | len == 1  = convertSingle (head showN)
+  | otherwise = Nothing
+  where
+    showN = show num
+    len   = length showN

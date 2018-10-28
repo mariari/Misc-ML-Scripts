@@ -100,3 +100,11 @@ preOrder xs = fst (recurse xs)
       where
         (nodeL, remaning)   = recurse (y:xs)
         (nodeR, remaining') = recurse remaning
+
+queens :: Int -> [[Int]]
+queens n = queens' n
+  where
+    queens' 0      = [[]]
+    queens' k      = filter (\(q:qs) -> isSafe q qs) $ (:) <$> [1..n] <*> queens' (pred k)
+    isSafe   mq qs = not (mq `elem` qs || sameDiag mq qs)
+    sameDiag mq qs = any (\(colDist, q) -> abs (mq - q) == colDist) $ zip [1..] qs
