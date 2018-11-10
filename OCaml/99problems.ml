@@ -42,12 +42,12 @@ let phi n =
 
 (* not surpassing that phi_site is 3x faster and has the lowest alloc rate *)
 (* since converting phi_old to Sequence, it's only slightly slower *)
-let () =
-  Command.run (Bench.make_command [
-                 Bench.Test.create ~name:"phi-fast"
-                                   (fun () -> phi 99999);
-                 Bench.Test.create ~name:"phi-old"
-                                   (fun () -> phi_old 99999);
-                 Bench.Test.create ~name:"phi-site"
-                                   (fun () -> phi_site 99999)
-              ])
+(* let () =
+ *   Command.run (Bench.make_command [
+ *                  Bench.Test.create ~name:"phi-fast"
+ *                                    (fun () -> phi 99999);
+ *                  Bench.Test.create ~name:"phi-old"
+ *                                    (fun () -> phi_old 99999);
+ *                  Bench.Test.create ~name:"phi-site"
+ *                                    (fun () -> phi_site 99999)
+ *               ]) *)
