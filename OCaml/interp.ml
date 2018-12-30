@@ -1,33 +1,45 @@
-(* open Core *)
+open Core
 
-type symbol = string
+module Symbol : sig
+  type t [@@deriving hash]
+  include Comparator.S with type t := t
+  val of_string : string -> t
+  val to_string : t -> string
+
+end = struct
+  module T = struct
+    type t = string [@@deriving compare, hash, sexp]
+  end
+  include T
+  include Comparator.Make(T)
+  let of_string t = t
+  let to_string t = t
+end
 
 type expr = Nil
           | StringLit  of string
           | IntLit     of int
           | BoolLit    of bool
           | FloatLit   of float
-          | Identifier of symbol
+          | Identifier of Symbol.t
           | IfThen     of expr * expr
           | IfThenElse of expr * expr * expr
           | LetExp     of declare list * expr
-          | Funcall    of symbol * expr list
+          | Funcall    of Symbol.t * expr list
 
-and declare = Var of symbol * expr
-            | Fun of symbol * symbol list * expr
+and declare = Var of Symbol.t * expr
+            | Fun of Symbol.t * Symbol.t list * expr
 
 and ret = String of string
         | Int    of int
         | Float  of float
         | Bool   of bool
-        | Func   of symbol * string list * expr
+        | Func   of Symbol.t * Symbol.t list * expr
         | Null
 
 exception Foo of string
 
-module StateMap = Map.Make(String)
-
-let add_new_state xs = StateMap.empty :: xs
+let add_new_state xs = Map.empty (module Symbol) :: xs
 
 let rec eval state = function
   | Nil                     -> Null,         state
@@ -55,20 +67,31 @@ and eval_let s exs ex =
     | [] ->
        s
     | Var (var, value) :: xs ->
-       let v, s' = eval s value in
-       add_to_state List.(StateMap.add var v (hd s') :: tl s') xs
+       (match eval s value with
+        | v, []           -> assert false
+        | v, s1 :: s_rest -> add_to_state (Map.change s1 var (Some v |> const) :: s_rest) xs)
     | Fun (var, binds, exp) :: xs ->
-       StateMap.add var
-                    (Func (var, binds, exp))
-                    (List.hd s)
-       :: List.tl s in
-  let let_state           = add_to_state (add_new_state s) exs in
-  let value, (_ :: state) = eval let_state ex [@@warning "-8"] in
-  value, state
+       let s1,s_rest =
+         match s with
+         | [] -> assert false
+         | s :: ss -> s, ss
+       in
+       Map.change s1
+                  var
+                  (Some (Func (var, binds, exp)) |> const)
+       :: s_rest
+  in
+  let let_state = add_to_state (add_new_state s) exs in
+  match eval let_state ex with
+  | _, []             -> assert false
+  | value, _ :: state -> (value, state)
 
 
-and eval_ident s var = match List.filter (StateMap.mem var) s with
-    | x :: _ -> StateMap.find var x, s
-    | _      -> raise @@ Foo ("The Variable " ^ var ^ " is unbound")
+and eval_ident s var =
+  match List.filter ~f:(Fn.flip Map.mem var) s with
+  | m :: _ -> Map.find_exn m var , s
+  | _      -> raise @@ Foo ("The Variable " ^ Symbol.to_string var ^ " is unbound")
 
-let letexpr = LetExp ([Fun ("hello", ["sutf"], (IntLit 2))], Identifier "hello")
+let letexpr = LetExp ([Fun (Symbol.of_string "hello"
+                           , [Symbol.of_string "stuff"], (IntLit 2))]
+                     , Identifier (Symbol.of_string "hello"))
