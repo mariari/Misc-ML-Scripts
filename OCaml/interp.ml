@@ -53,10 +53,11 @@ let rec eval state = function
   | Identifier (var)        -> eval_ident state var
   | Funcall    (fn, args)   -> Null, state
 
-and eval_bool state pred = match eval pred state with
-  | (Bool b, s) -> b,     s
-  | (Null,   s) -> false, s
-  | (_,      s) -> true,  s
+and eval_bool state pred =
+  match eval pred state with
+  | (Bool b, s)                                     -> b,     s
+  | (Null,   s)                                     -> false, s
+  | String _, s | Func _, s | Int _, s | Float _, s -> true,  s
 
 and eval_if s p t e = match eval_bool p s with
   | true, s  -> eval s t
@@ -83,14 +84,14 @@ and eval_let s exs ex =
   in
   let let_state = add_to_state (add_new_state s) exs in
   match eval let_state ex with
-  | _, []             -> assert false
+  | _    , []         -> assert false
   | value, _ :: state -> (value, state)
 
 
 and eval_ident s var =
   match List.filter ~f:(Fn.flip Map.mem var) s with
   | m :: _ -> Map.find_exn m var , s
-  | _      -> raise @@ Foo ("The Variable " ^ Symbol.to_string var ^ " is unbound")
+  | []     -> raise @@ Foo ("The Variable " ^ Symbol.to_string var ^ " is unbound")
 
 let letexpr = LetExp ([Fun (Symbol.of_string "hello"
                            , [Symbol.of_string "stuff"], (IntLit 2))]
