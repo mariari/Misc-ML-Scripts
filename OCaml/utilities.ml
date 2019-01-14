@@ -1,37 +1,49 @@
 open Core
 open Core_bench
 
-(* converts a list, xs, to a hashtbl, In reality this is a bag *)
-let to_hash xs =
-  let hash = Hashtbl.Poly.create ~growth_allowed:false ~size:(List.length xs) () in
-  let f x = function
-    | Some x -> succ x
-    | None   -> 1
+(* Could save hash table space, by calling List.dedup_and_sort
+ * however, this would move the to_hash function to O(n × log n)
+ *)
+(** converts a list, xs, to a hashtbl, In reality this is a bag
+ *  also takes a module with a hash function and a competitor
+ *  this runs in O(n) time, however the hash_table will take up O(n)
+ *  sort_space_by_dedup, dedups the list, before creating the size of the
+ *  hash_table/bag, saving hashtable space, at the cost of O(n log n)
+ *)
+let to_hash
+      (type a)
+      (module Key_module : Hashtbl_intf.Key with type t = a)
+      ?(save_space_by_dedup = false)
+      (xs : a list) =
+  let size =
+    if save_space_by_dedup then
+      xs
+      |> List.dedup_and_sort ~compare:Key_module.compare
+      |> List.length
+    else (List.length xs)
   in
-  List.iter xs ~f:(fun x -> Hashtbl.update hash x (f x));
+  let hash = Hashtbl.create (module Key_module) ~growth_allowed:false ~size in
+  let f    = Option.value_map ~f:succ ~default:1 in
+  List.iter xs ~f:(Hashtbl.update hash ~f);
   hash
 
-(* fast way of doing list difference, O(n + m) *)
-let rec diff xs ys =
-  let hash = to_hash ys in
-  let rem_or_del x =
-    Hashtbl.change hash x ~f:(function
-        | None    -> None
-        | Some 1  -> None
-        | Some x  -> Some (pred x) )
-  in
+(** fast way of doing list difference, O(n + m)
+ *  also takes a module with a hash function and a competitor
+ *)
+let rec diff val_module xs ys =
+  let hash = to_hash val_module ys in
   List.filter xs ~f:(fun x ->
       if Hashtbl.mem hash x then begin
-        rem_or_del x;
+        Hashtbl.decr ~remove_if_zero:true hash x;
         false
       end else
         true)
 
-(* Removes a specific element from a list *)
+(* Removes a specific element from a list, uses a polymorphic competitor *)
 let remove xs ~ele =
   let rec loop acc = function
     | []                   -> List.rev acc
-    | x :: xs when x = ele -> List.append (List.rev acc) xs
+    | x :: xs when x = ele -> List.rev_append acc xs
     | x :: xs              -> loop (x :: acc) xs
   in
   loop [] xs
