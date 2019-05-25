@@ -1,5 +1,5 @@
 open Core
-open Core_bench
+(* open Core_bench *)
 (* problem 32 *)
 let rec gcd a b = if b = 0 then a else gcd b (a mod b)
 
@@ -9,8 +9,7 @@ let coprime a b = gcd a b = 1
 (* problem 34 *)
 let phi_old n =
   Sequence.range 0 n
-  |> Sequence.map ~f:(coprime n)
-  |> Sequence.count ~f:ident
+  |> Sequence.count ~f:(coprime n)
 
 (* problem 36 - use CPS later, and send in a prime list later *)
 let factors n =
@@ -38,7 +37,7 @@ let phi_site n =
 let phi n =
   factors n
   |> List.fold_left ~f:(fun acc (x, num) -> Int.(acc * (x - 1) * pow x (num - 1)))
-                    ~init: 1
+                    ~init:1
 
 (* not surpassing that phi_site is 3x faster and has the lowest alloc rate *)
 (* since converting phi_old to Sequence, it's only slightly slower *)
