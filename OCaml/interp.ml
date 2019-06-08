@@ -59,28 +59,22 @@ and eval_bool state pred =
   | (Null,   s)                                     -> false, s
   | String _, s | Func _, s | Int _, s | Float _, s -> true,  s
 
-and eval_if s p t e = match eval_bool p s with
+and eval_if s p t e =
+  match eval_bool p s with
   | true, s  -> eval s t
   | false, s -> eval s e
 
 and eval_let s exs ex =
   let rec add_to_state s = function
-    | [] ->
-       s
+    | [] -> s
     | Var (var, value) :: xs ->
-       (match eval s value with
-        | v, []           -> assert false
-        | v, s1 :: s_rest -> add_to_state (Map.change s1 var (Some v |> const) :: s_rest) xs)
+      (match eval s value with
+       | v, []         -> assert false
+       | v, s1 :: s_tl -> add_to_state (Map.change s1 var (Some v |> const) :: s_tl) xs)
     | Fun (var, binds, exp) :: xs ->
-       let s1,s_rest =
-         match s with
-         | [] -> assert false
-         | s :: ss -> s, ss
-       in
-       Map.change s1
-                  var
-                  (Some (Func (var, binds, exp)) |> const)
-       :: s_rest
+      match s with
+      | []         -> assert false
+      | s1 :: s_tl -> Map.change s1 var (Some (Func (var, binds, exp)) |> const) :: s_tl
   in
   let let_state = add_to_state (add_new_state s) exs in
   match eval let_state ex with

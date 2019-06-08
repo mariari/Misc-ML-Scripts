@@ -5,14 +5,14 @@ let word_trigger str =
   let index = ref 0 in
   let count = ref 0 in
   if str = "" then
-    stage (fun input -> (count := !count + 1; !count))
+    stage (fun input -> (incr count; !count))
   else
     let capacity () = if !index = String.length str then begin
-                          count := !count + 1;
+                          incr count
                           index := 0
                         end in
     let f x = if x = String.get str !index
-              then index := !index + 1
+              then incr index
               else index := 0 in
     stage @@
     fun input ->
@@ -46,14 +46,14 @@ module Word : Word_trigger = struct
     let index = ref 0 in
     let count = ref 0 in
     if str = "" then
-      (fun input -> (count := !count + 1; !count))
+      (fun input -> (incr count ; !count))
     else
       let capacity () =
         if !index = String.length str
-        then (count := !count + 1 ; index := 0) in
+        then (incr count ; index := 0) in
       let f x =
         if x = String.get str !index
-        then index := !index + 1
+        then incr index
         else index := 0 in
       fun input ->
         String.iter input (fun x -> f x; capacity ());

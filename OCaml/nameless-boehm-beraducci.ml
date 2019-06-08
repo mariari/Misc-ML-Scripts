@@ -130,7 +130,7 @@ module Eval = struct
       else if is_val e1 then
         Option.map ~f:(app e1) (eval1_value e2)
       else
-        Option.map ~f:(fun e1 -> app e1 e2) (eval1_value e1)
+        Option.map ~f:(Fn.flip app e2) (eval1_value e1)
     in
     (Decon.decon l).un_decon d_var d_abs d_app
 
