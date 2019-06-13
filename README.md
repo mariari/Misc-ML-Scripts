@@ -10,3 +10,6 @@ Some notable files are
 6. `data-structures/` - Various data structures made in Haskell
 7. `OCAML/` - Various OcaML scripts
    1. `interp` - a mini interpreter in OcaML
+   2. `nameless` - Implements da brujin indincies
+   3. `nameless-boehm-beraducci` - Reimplements nameless, but using rank 2 F_ω
+   4. `nameless-final-first` - tries to do nameless-bb again but this time with module functors, this is the first flawed attempt
