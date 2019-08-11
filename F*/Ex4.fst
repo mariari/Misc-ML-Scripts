@@ -55,3 +55,9 @@ let rec fold_left_cons_is_reverse l1 l2 =
      * =by 2/induction = fold_left flipCons (h1 :: l2) l1
      * =by definition  = fold_left flipCons l1 l2
      *)
+
+val nth : l : list 'a -> n : nat {List.Tot.length l > n} -> 'a
+let rec nth l n =
+  match l with
+  | x :: xs → if n = 0 then x else nth xs (n - 1)
+
