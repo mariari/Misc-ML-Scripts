@@ -37,10 +37,10 @@ let rec append_count #t l m = match l with
 
 val partition : ('a -> bool) -> list 'a -> (list 'a * list 'a)
 let partition f xs =
-  List.Tot.fold_right (fun x (in', out) →
+  List.Tot.fold_right (fun x (ins, out) →
                          if f x
-                         then (x :: in', out)
-                         else (in'    , x :: out))
+                         then (x :: ins, out)
+                         else (ins    , x :: out))
                       xs
                       ([],[])
 
@@ -75,8 +75,8 @@ val sorted_concat_lemma : #a : eqtype
                         → f  : (a -> a -> bool)
                         → l1 : list a{sorted f l1}
                         -> l2 : list a{sorted f l2}
-                        -> pivot : a
-                        -> Lemma (requires (total_order a f
+                        → pivot : a
+                        → Lemma (requires (total_order a f
                                          /\ (forall y. mem y l1 ==> not (f pivot y))
                                          /\ (forall y. mem y l2 ==> f pivot y)))
                                  (ensures (sorted f (append l1 (pivot :: l2))))

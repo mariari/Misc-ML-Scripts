@@ -148,18 +148,21 @@ let rec append_expanded #a l1 l2 = match l1 with
   | hd :: tl -> hd :: append #a tl l2
 
 
-val mem: #a:eqtype -> a -> list a -> Tot bool
+val mem : #a:eqtype -> a -> list a -> Tot bool
 let rec mem #a x xs =
   match xs with
   | [] -> false
   | hd :: tl -> hd = x || mem x tl
 
-val append_mem : #a:eqtype -> l1:list a -> l2:list a -> x:a
-               -> Lemma (mem x (append l1 l2) <==> mem x l1 || mem x l2)
-let rec append_mem #a l1 l2 x =
-  match l1 with
-  | []      → ()
-  | hd :: tl → append_mem tl l2 x
+val append_mem: #t:eqtype
+	      -> l1:list t
+              -> l2:list t
+              -> Lemma (requires True)
+                       (ensures (forall a. mem a (append l1 l2) = (mem a l1 || mem a l2)))
+                       [SMTPat (append l1 l2)]
+let rec append_mem #t l1 l2 = match l1 with
+  | [] -> ()
+  | hd::tl -> append_mem tl l2
 
 
 val reverse : list 'a -> Tot (list 'a)
