@@ -24,17 +24,6 @@ let rec append_count #t l m = match l with
   | [] -> ()
   | hd::tl -> append_count tl m
 
-
-// val partition: ('a -> Tot bool) -> list 'a -> Tot (list 'a * list 'a)
-// let rec partition f = function
-//   | [] -> [], []
-//   | hd::tl ->
-//      let l1, l2 = partition f tl in
-//      if f hd
-//      then hd::l1, l2
-//      else l1, hd::l2
-
-
 val partition : ('a -> bool) -> list 'a -> (list 'a * list 'a)
 let partition f xs =
   List.Tot.fold_right (fun x (ins, out) →
@@ -74,7 +63,7 @@ type total_order (a:eqtype) (f: (a -> a -> bool)) =
 val sorted_concat_lemma : #a : eqtype
                         → f  : (a -> a -> bool)
                         → l1 : list a{sorted f l1}
-                        -> l2 : list a{sorted f l2}
+                        → l2 : list a{sorted f l2}
                         → pivot : a
                         → Lemma (requires (total_order a f
                                          /\ (forall y. mem y l1 ==> not (f pivot y))
@@ -88,7 +77,7 @@ let rec sorted_concat_lemma #a f l1 l2 pivot =
 
 
 val sort : #a : eqtype
-         -> f  : (a -> a -> bool){total_order a f}
+         → f  : (a -> a -> bool){total_order a f}
          → l  : list a
          → Tot (m : list a{sorted f m /\ (forall i. mem   i l = mem   i m)
                                       /\ (forall i. count i l = count i m)})
