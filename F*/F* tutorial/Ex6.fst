@@ -55,17 +55,23 @@ let rec partition_lemma #a f l = match l with
 
 
 (** [total_order] - the function f must give rise to an POSET *)
-type total_order (a:eqtype) (f: (a -> a -> bool)) =
+type total_order (#a:eqtype) (f: (a -> a -> bool)) =
     (forall a. f a a)                                           (* reflexivity   *)
     /\ (forall a1 a2. (f a1 a2 /\ a1 <> a2)  <==> not (f a2 a1))  (* anti-symmetry *)
     /\ (forall a1 a2 a3. f a1 a2 /\ f a2 a3 ==> f a1 a3)        (* transitivity  *)
+
+
+type permutation (#a:eqtype) (l : list a) (m : list a) =
+    (forall i. mem   i l = mem   i m)
+  /\ (forall i. count i l = count i m)
+
 
 val sorted_concat_lemma : #a : eqtype
                         → f  : (a -> a -> bool)
                         → l1 : list a{sorted f l1}
                         → l2 : list a{sorted f l2}
                         → pivot : a
-                        → Lemma (requires (total_order a f
+                        → Lemma (requires (total_order f
                                          /\ (forall y. mem y l1 ==> not (f pivot y))
                                          /\ (forall y. mem y l2 ==> f pivot y)))
                                  (ensures (sorted f (append l1 (pivot :: l2))))
@@ -75,12 +81,10 @@ let rec sorted_concat_lemma #a f l1 l2 pivot =
     | []     -> ()
     | _ :: tl -> sorted_concat_lemma f tl l2 pivot
 
-
 val sort : #a : eqtype
-         → f  : (a -> a -> bool){total_order a f}
+         → f  : (a -> a -> bool){total_order f}
          → l  : list a
-         → Tot (m : list a{sorted f m /\ (forall i. mem   i l = mem   i m)
-                                      /\ (forall i. count i l = count i m)})
+         → Tot (m : list a{sorted f m /\ (permutation l m)})
                (decreases (List.Tot.length l))
 let rec sort #a f = function
   | [] -> []
