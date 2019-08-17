@@ -2,6 +2,7 @@ module Ex1
 
 open FStar.Exn
 open FStar.All
+open FStar.Ref
 
 type filename = string
 
@@ -71,10 +72,92 @@ let _ = assert (forall x y. max x y >= x
                     && max x y >= y
                     && (max x y = x || max x y = y))
 
-// val new_counter: int -> St (unit -> St int)
-// let new_counter init =
-//   let c = ST.alloc init in
-//   fun () -> c := !c + 1; !c
+val new_point: x:int -> ST (ref int)
+  (requires (fun h -> True))
+  (ensures (fun h0 p h1 ->
+                 fresh p h0 h1))
+let new_point (x : int) =
+  let x = ST.alloc x in
+  x
+
+
+//val new_counter: int -> ST (unit -> St int)
+val new_counter : c : ref int
+                -> unit
+                -> ST int
+  (requires (fun h -> Heap.contains h c))
+  (ensures (fun h0 x h1 -> modifies (only c) h0 h1
+                          /\ equal_dom h0 h1))
+let new_counter c =
+  //let c = ST.alloc c in
+ fun () -> c := !c + 1; !c
+
+
+// Trials in dealing with the double encoding bug
+val test'' : x : int
+    -> STATE (_ : unit -> STATE int
+                        (fun p h0 ->
+                          (forall (a : ref int) (h1:  heap).
+                            contains h0 a
+                          /\ modifies (only a) h0 h1
+                          /\ equal_dom h0 h1 ==>
+                          (forall (return_val : int).
+                            return_val == 1 + sel h0 a ==>
+                            return_val == sel h1 a ==>  p return_val h1))))
+        (fun p h0 ->
+            (forall (a: ref int) (h1:  heap).
+                fresh a h0 h1 /\ modifies Set.empty h0 h1 /\ sel h1 a == x
+                ==>
+                (forall (return_val : (_: unit -> STATE int (fun p h0 ->
+                          (forall (_ : unit).
+                            contains h0 a
+                          /\ modifies (only a) h0 h1
+                          /\ equal_dom h0 h1 ==>
+                          (forall (return_val : int).
+                            return_val == 1 + sel h0 a ==>
+                            return_val == sel h1 a ==>  p return_val h1))))).
+//                      return_val == (fun () -> a := !a + 1; !a) ==>
+                      p return_val h1)))
+
+
+val test''' : x : int
+    -> STATE (_ : unit -> ST int (requires (fun _ -> True))
+                        (ensures (fun h0 x h1 ->
+                          (forall (a : ref int).
+                            contains h0 a
+                          /\ modifies (only a) h0 h1
+                          /\ equal_dom h0 h1
+                          ==> x == sel h1 a /\ x == (sel h0 a + 1)))))
+        (fun p h0 ->
+            (forall (a: ref int) (h1:  heap).
+                fresh a h0 h1 /\ modifies Set.empty h0 h1 /\ sel h1 a == x
+                ==>
+                (forall (return_val : (_ : unit ->  ST int (requires (fun _ -> True))
+                                                   (ensures (fun h0 x h1 ->
+                                                     (forall (a : ref int).
+                                                     contains h0 a
+                                                   /\ modifies (only a) h0 h1
+                                                   /\ equal_dom h0 h1
+                                                   ==> x == sel h1 a /\ x == (sel h0 a + 1)))))) .
+                      return_val == (fun () -> a := !a + 1; !a) ==>
+                      p return_val h1)))
+
+// with ML
+val new_counter' : int -> ML (unit -> ML int)
+let new_counter' x =
+ let y = ST.alloc x in
+ fun () ->
+   y := !y + 1;
+   !y
+
+// with ST
+type fn = unit -> St int
+
+val bar: int -> St fn
+let bar x =
+  let r = alloc x in
+  ((fun () -> r := !r + 1; !r) <: fn)
+
 
 val factorial : nat -> Tot (y:int{y >= 1})
 let rec factorial n =

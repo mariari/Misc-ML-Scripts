@@ -106,3 +106,118 @@ let rec progress = function
   | _            -> ()
 
 
+val appears_free_in : x:int -> e:exp -> Tot bool
+let rec appears_free_in x e =
+  match e with
+  | EVar y -> x = y
+  | EApp e1 e2 -> appears_free_in x e1 || appears_free_in x e2
+  | EAbs y _ e1 -> x <> y && appears_free_in x e1
+  | EIf e1 e2 e3 ->
+      appears_free_in x e1 || appears_free_in x e2 || appears_free_in x e3
+  | ETrue
+  | EFalse -> false
+
+val free_in_context : x:int -> e:exp -> g:env -> Lemma
+      (requires (Some? (typing g e)))
+      (ensures (appears_free_in x e ==> Some? (g x)))
+let rec free_in_context x e g =
+  match e with
+  | EVar _
+  | ETrue
+  | EFalse -> ()
+  | EAbs y t e1 -> free_in_context x e1 (extend g y t)
+  | EApp e1 e2 -> free_in_context x e1 g; free_in_context x e2 g
+  | EIf e1 e2 e3 -> free_in_context x e1 g;
+                    free_in_context x e2 g; free_in_context x e3 g
+
+val typable_empty_closed : x:int -> e:exp -> Lemma
+      (requires (Some? (typing empty e)))
+      (ensures (not(appears_free_in x e)))
+      [SMTPat (appears_free_in x e)]
+let typable_empty_closed x e = free_in_context x e empty
+
+let equal (g1:env) (g2:env) : Type0 = (forall (x:int). g1 x = g2 x)
+let equalE (e:exp) (g1:env) (g2:env) : Type0 = (forall (x:int). appears_free_in x e ==> g1 x = g2 x)
+
+val context_invariance : e:exp -> g:env -> g':env -> Lemma
+  (requires (equalE e g g'))
+  (ensures (typing g e == typing g' e))
+let rec context_invariance e g g' =
+  match e with
+  | EAbs x t e1 ->
+     context_invariance e1 (extend g x t) (extend g' x t)
+  | EApp e1 e2 ->
+     context_invariance e1 g g';
+     context_invariance e2 g g'
+  | EIf e1 e2 e3 ->
+     context_invariance e1 g g';
+     context_invariance e2 g g';
+     context_invariance e3 g g'
+  | _ -> ()
+
+val typing_extensional : g:env -> g':env -> e:exp -> Lemma
+  (requires (equal g g'))
+  (ensures (typing g e == typing g' e))
+let typing_extensional g g' e = context_invariance e g g'
+
+
+val substitution_preserves_typing : x:int -> e:exp -> v:exp -> g:env -> Lemma
+  (requires (Some? (typing empty v)
+            /\  Some? (typing (extend g x (Some?.v (typing empty v))) e)))
+  (ensures (Some? (typing empty v)
+           /\ typing g (subst x v e)
+           == typing (extend g x (Some?.v (typing empty v))) e))
+let rec substitution_preserves_typing x e v g =
+  let Some t_x = typing empty v in
+  let gx = extend g x t_x in
+  match e with
+  | ETrue -> ()
+  | EFalse -> ()
+  | EVar y ->
+     if x=y
+     then context_invariance v empty g (* uses lemma typable_empty_closed *)
+     else context_invariance e gx g
+
+  | EApp e1 e2 ->
+     substitution_preserves_typing x e1 v g;
+     substitution_preserves_typing x e2 v g
+
+  | EIf e1 e2 e3 ->
+     substitution_preserves_typing x e1 v g;
+     substitution_preserves_typing x e2 v g;
+     substitution_preserves_typing x e3 v g
+
+  | EAbs y t_y e1 ->
+     let gxy = extend gx y t_y in
+     let gy = extend g y t_y in
+     if x=y
+     then typing_extensional gxy gy e1
+     else
+       (let gyx = extend gy x t_x in
+        typing_extensional gxy gyx e1;
+        substitution_preserves_typing x e1 v gy)
+
+val preservation : e:exp -> Lemma
+  (requires (Some? (typing empty e) /\ Some? (step e)))
+  (ensures (Some? (step e) /\
+            typing empty (Some?.v (step e)) == typing empty e))
+let rec preservation e =
+  match e with
+  | EApp e1 e2 ->
+     if is_value e1
+     then (if is_value e2
+           then let EAbs x _ ebody = e1 in
+                substitution_preserves_typing x ebody e2 empty
+           else preservation e2)
+     else preservation e1
+
+  | EIf e1 _ _ ->
+      if not (is_value e1) then preservation e1
+
+
+val typed_step : e:exp{Some? (typing empty e) /\ not(is_value e)}
+               -> Tot (e':exp{typing empty e' = typing empty e})
+let typed_step e =
+  progress e;
+  preservation e;
+  Some?.v (step e)
