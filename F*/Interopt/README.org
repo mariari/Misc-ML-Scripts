@@ -1,0 +1,9 @@
+* Interopt
+This directory is to test F* ↔ OCaml interopt
+
+- to Run this code, simply call =../build= on =Useage.fst=
+  + =Useage.fst= uses the interface =Getopt.fsti=, which has a
+    concrete implementation
+- After you run this code, do =#mod_use "Getopt.ml"= and =#mod_use
+  "Useage.ml"= and watch the sharing begin
+
