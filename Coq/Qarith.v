@@ -8,9 +8,6 @@ Theorem div_same_plus_m : forall n m,
 Proof.
   intros n m H.
   apply Qmult_inv_r in H.
-  assert (H' : n / n == 1).
-  - unfold Qdiv.
-    apply H.
-  - rewrite Qplus_inj_r.
-    apply H'.
+  rewrite Qplus_inj_r.
+  apply H.
 Qed.
