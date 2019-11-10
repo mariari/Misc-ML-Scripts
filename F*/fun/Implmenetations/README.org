@@ -1,0 +1,11 @@
+* Creations of the G-machine
+- This code is done in =F*=, accompanying =Coq= code will also be
+  provided once I figure out termination proofs
+- This is an implementation of 'Implementing Functional Languages a
+  tutorial' by Simon L Peyton Jones
+  + Currently only the syntax of chapter 1, and the beginning of
+    chapter 2 is complete
+- This also serves as a good tutorial on tactics and other techniques
+  in =F*=
+  + Hopefully an article will be written by me about this after this
+    project is complete
