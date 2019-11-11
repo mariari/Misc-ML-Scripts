@@ -53,64 +53,36 @@ let test6 = fourth (List.Tot.last (eval_mult (mult_start 2 3)))
 
 (***** exercise 2.2 *)
 
-val ex1 : unit -> Lemma True
-let ex1 () =
-    assert_by_tactic True (fun () -> ())
 
-val ex2 : unit -> Lemma True
-let ex2 () =
-    assert_by_tactic True (fun () -> (dump "Example 3"))
-
-let tau3 () : Tac unit =
-  dump "before split";
-  Tactics.split ();
-  dump "After split";
-  // comment out smt and the next poor will fail
-  smt ();
-  trivial ()
-
-val ex3 : x : nat → Lemma (x + x >= 0 /\ List.length [4;5;1] == 3)
-let ex3 (x : nat) =
-  assert_by_tactic (x + x >= 0 /\ List.length [4;5;1] == 3) tau3
-
-(* but first a helper *)
-
-let test_tactic () : Tac unit =
-  dump "first"
+(*** Proofs *)
 
 (***** Figure out what to do *)
 (* admit () gets stuck here! *)
-let test (s : mult_state) =
-  assert_by_tactic (ensures (fourth (List.Tot.last (eval_mult s)) == fourth s + (op_Multiply (first s) (second s))))
-                   (fun () →
-                     dump "here we go";
-                     let binder = cur_binders () in
-                     rewrite
-                     dump "after intros";
-                     admit ()
-                   )
+// let test (s : mult_state) =
+//   assert_by_tactic (ensures (fourth (List.Tot.last (eval_mult s)) == fourth s + (op_Multiply (first s) (second s))))
+//                    (fun () →
+//                      dump "here we go";
+//                      let binder = cur_binders () in
+//                      // rewrite
+//                      dump "after intros";
+//                      admit ()
+//                    )
+
+val step_mult_increases : x : mult_state{not (mult_final x)}
+                        → Lemma (fourth x + 1 = fourth (step_mult x) \/ second x - 1 = second (step_mult x))
+let step_mult_increases x = ()
 
 val eval_mult_mults_current : s:mult_state
-                            → Lemma (ensures (fourth (List.Tot.last (eval_mult s)) == fourth s + (op_Multiply (first s) (second s))))
+                            → Lemma (ensures (fourth (List.Tot.last (eval_mult s))
+                                              == third s + fourth s + (op_Multiply (second s) (first s))))
                                     (decreases %[second s; third s])
 let rec eval_mult_mults_current state =
   match mult_final state with
   | true  → ()
-  | false →
-    let new_state = step_mult state in
-    eval_mult_mults_current new_state;
-    admit ()
-
-    // definition  
-    // =(1)= (_,x,y,_) <> (_,0,0,_)
+  | false → eval_mult_mults_current (step_mult state)
 
 
 val eval_mult_is_mult : n:nat
                       → d:nat
                       → Lemma (fourth (List.Tot.last (eval_mult (mult_start n d))) == op_Multiply n d)
-
-let eval_mult_is_mult n d =
-  mult_zero_start n d;
-  match mult_final (mult_start n d) with
-  | true -> ()
-  | false -> admit ()
+let eval_mult_is_mult n d = eval_mult_mults_current (mult_start n d)
