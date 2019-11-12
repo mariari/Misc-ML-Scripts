@@ -1,4 +1,4 @@
-#Misc-Haskell-Scripts
+#Misc-ML-Scripts
 Some of my miscellaneous haskell scripts that I've played with.
 
 Some notable files are
@@ -13,3 +13,5 @@ Some notable files are
    2. `nameless` - Implements da brujin indincies
    3. `nameless-boehm-beraducci` - Reimplements nameless, but using rank 2 F_ω
    4. `nameless-final-first` - tries to do nameless-bb again but this time with module functors, this is the first flawed attempt
+8. `Fstar/`
+   1. Read the README, has all important files listed

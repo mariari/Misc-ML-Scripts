@@ -32,6 +32,9 @@ let test2 = EApp (EApp (EVar "+") (EVar "x")) (EVar "y")
 val rhs : xs : list ('a * 'b) -> list 'b
 let rhs xs = List.Tot.map snd xs
 
+val rhs' (#a #b:Type) : list (a * b) -> list b
+let rhs' #_ #_ = List.Tot.map snd
+
 val is_atomic_expr : expr 'a -> bool
 let is_atomic_expr = function
   | EVar _ | Enum _ -> true
