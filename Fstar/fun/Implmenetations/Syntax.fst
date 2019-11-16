@@ -5,16 +5,17 @@ open FStar.Ref
 open FStar.Exn
 
 // make this better typed
-type expr (a : Type u#0) : Type =
+type expr (a : Type u#a) : Type u#a =
   | Enum    : num:ℤ                           → expr a
-  | EVar    : name:string                     -> expr a
-  | EConstr : ℤ -> ℤ                           -> expr a
-  | EApp    : expr a -> expr a                 -> expr a
+  | EVar    : name:string                     → expr a
+  | EConstr : ℤ → ℤ                           → expr a
+  | EApp    : expr a → expr a                 → expr a
   | ELet    : is_rec:bool → list (a * expr a) → expr a
-  | ELam    : args:list a -> expr a            -> expr a
+  | ELam    : args:list a → expr a            → expr a
+  | ECase   : statement:expr a → list (alter a) → expr a
 
-and alter 'a : Type =
-  | Alt : int → list string -> expr 'a -> alter 'a
+and alter (b : Type u#b) : Type u#b =
+  | Alt : int → list string -> expr b -> alter b
 
 type expr_program = expr string
 

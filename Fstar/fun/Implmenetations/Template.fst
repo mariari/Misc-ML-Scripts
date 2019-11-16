@@ -86,3 +86,7 @@ val eval_mult_is_mult : n:nat
                       → d:nat
                       → Lemma (fourth (List.Tot.last (eval_mult (mult_start n d))) == op_Multiply n d)
 let eval_mult_is_mult n d = eval_mult_mults_current (mult_start n d)
+
+(*** 2.3 MARK 1: Mianimal template instantian graph reducer *)
+
+
