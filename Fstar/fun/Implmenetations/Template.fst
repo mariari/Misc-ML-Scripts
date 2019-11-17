@@ -5,7 +5,7 @@ open FStar.Tactics
 open FStar.List
 
 type n = nat
-type d = nat
+let  d = nat
 type m = nat
 type t = nat
 
@@ -59,7 +59,7 @@ let test6 = fourth (List.Tot.last (eval_mult (mult_start 2 3)))
 (***** Figure out what to do *)
 (* admit () gets stuck here! *)
 // let test (s : mult_state) =
-//   assert_by_tactic (ensures (fourth (List.Tot.last (eval_mult s)) == fourth s + (op_Multiply (first s) (second s))))
+//   assert_by_tactic (ensures (fourth (List.Tot.last (eval_mult s)) == third s + fourth s + (op_Multiply (first s) (second s))))
 //                    (fun () →
 //                      dump "here we go";
 //                      let binder = cur_binders () in
@@ -90,3 +90,13 @@ let eval_mult_is_mult n d = eval_mult_mults_current (mult_start n d)
 (*** 2.3 MARK 1: Mianimal template instantian graph reducer *)
 
 
+type ti_stack = list Utils.addr
+
+
+type ti_state = {
+  stack   : ti_stack
+  dump    : ti_dump
+  heap    : ti_heap
+  globals : ti_globals
+  stats   : ti_stats
+}
