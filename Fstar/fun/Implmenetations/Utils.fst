@@ -20,7 +20,6 @@ let h_initial #a = {
 
 let test = Map.contains ((h_initial #int).maps_to) 2
 
-
 val h_alloc (#a : Type) : heap a -> a -> heap a * int
 let h_alloc #a {size; free; maps_to} v =
   match free with

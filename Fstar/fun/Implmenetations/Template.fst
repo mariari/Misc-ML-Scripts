@@ -3,6 +3,8 @@ module Template
 open Syntax
 open FStar.Tactics
 open FStar.List
+module Map = FStar.Map
+
 
 type n = nat
 let  d = nat
@@ -90,13 +92,25 @@ let eval_mult_is_mult n d = eval_mult_mults_current (mult_start n d)
 (*** 2.3 MARK 1: Mianimal template instantian graph reducer *)
 
 
-type ti_stack = list Utils.addr
 
+(* will be expanded in 2.6 *)
+type ti_dump = | DummyTiDump
+let initial_ti_dump = DummyTiDump
 
-type ti_state = {
-  stack   : ti_stack
-  dump    : ti_dump
-  heap    : ti_heap
-  globals : ti_globals
+type node =
+  | Napp       : Utils.addr -> Utils.addr -> node
+  | NSuperComb : name -> list name -> core_program -> node
+  | NNum       : int -> node
+
+type ti_stack  = list Utils.addr
+let ti_heap    = Utils.heap node
+let ti_globals = Map.t name Utils.addr
+let ti_stats   = int
+
+unopteq type ti_state = {
+  stack   : ti_stack;
+  dump    : ti_dump;
+  heap    : ti_heap;
+  globals : ti_globals;
   stats   : ti_stats
 }
