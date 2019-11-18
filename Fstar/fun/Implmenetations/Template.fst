@@ -94,8 +94,12 @@ let eval_mult_is_mult n d = eval_mult_mults_current (mult_start n d)
 
 
 (* will be expanded in 2.6 *)
-type ti_dump = | DummyTiDump
+type ti_dump =
+  | DummyTiDump
+
 let initial_ti_dump = DummyTiDump
+
+type name = string
 
 type node =
   | Napp       : Utils.addr -> Utils.addr -> node
