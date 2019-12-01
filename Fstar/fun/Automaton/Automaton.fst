@@ -66,7 +66,7 @@ let rec run_n_times n s xs =
 
 let default_spot = {spot = (0,0)}
 
-let spot_to_int {spot} = let (x,y) = spot in x + y
+let spot_to_int {spot} = let (x,y) = spot in abs x + abs y
 
 
 let test = run default_spot [Left; Right; Up; Down]
@@ -117,3 +117,33 @@ let rec proof_bounded_n xs spot n =
   | n ->
     proof_bounded xs spot;
     proof_bounded_n xs spot (n - 1)
+
+val proof_unbounded : xs   : move_set
+                    → spot : base_state
+                    → Lemma (requires left xs <> right xs \/ up xs <> down xs)
+                            (ensures spot <> run spot xs)
+let proof_unbounded xs s =
+  match xs with
+  | x :: xs ->
+    y_relationship xs (app_inst s x);
+    x_relationship xs (app_inst s x)
+
+val proof_unbounded_n : xs   : move_set
+                      → spot : base_state
+                      → n    : nat
+                      → Lemma (requires left xs <> right xs \/ up xs <> down xs)
+                              (ensures exists m. spot_to_int (run_n_times m spot xs) > n)
+let rec proof_unbounded_n xs spot n =
+  // TODO!
+  admit ()
+
+
+
+(**** turn machine  *)
+
+type turn =
+  | Turn_left
+  | Foward
+  | Turn_right
+
+type turn_set = list turn
