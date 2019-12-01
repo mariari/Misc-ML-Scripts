@@ -46,8 +46,8 @@ let h_free #a {size; free; maps_to} key = {
 
 // For some reason as_list is private, but we can make it with fold
 private val set_as_list (#a:eqtype) (#acc:Type) (#f:Set.cmp a) : Set.ordset a f -> list a
-private let set_as_list #_ #_ #_ s =
-  Set.fold (fun acc x -> x :: acc) [] s
+private let set_as_list #_ #_ #_ =
+  Set.fold (fun acc x -> x :: acc) []
 
 val h_addresses (#a : Type) : heap a -> list int
 let h_addresses #a {size; free; maps_to} =

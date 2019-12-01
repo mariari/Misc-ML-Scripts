@@ -3,7 +3,7 @@ module Template
 open Syntax
 open FStar.Tactics
 open FStar.List
-module Map = FStar.Map
+module Map = FStar.OrdMap
 
 
 type n = nat
@@ -58,17 +58,6 @@ let test6 = fourth (List.Tot.last (eval_mult (mult_start 2 3)))
 
 (*** Proofs *)
 
-(***** Figure out what to do *)
-(* admit () gets stuck here! *)
-// let test (s : mult_state) =
-//   assert_by_tactic (ensures (fourth (List.Tot.last (eval_mult s)) == third s + fourth s + (op_Multiply (first s) (second s))))
-//                    (fun () →
-//                      dump "here we go";
-//                      let binder = cur_binders () in
-//                      // rewrite
-//                      dump "after intros";
-//                      admit ()
-//                    )
 
 val step_mult_increases : x : mult_state{not (mult_final x)}
                         → Lemma (fourth x + 1 = fourth (step_mult x) \/ second x - 1 = second (step_mult x))
@@ -106,10 +95,41 @@ type node =
   | NSuperComb : name -> list name -> core_program -> node
   | NNum       : int -> node
 
+type total_order (a:eqtype) (f: (a -> a -> Tot bool)) =
+   (forall a1 a2. (f a1 a2 /\ f a2 a1)  ==> a1 = a2)  (* anti-symmetry *)
+ /\ (forall a1 a2 a3. f a1 a2 /\ f a2 a3 ==> f a1 a3)  (* transitivity  *)
+ /\ (forall a1 a2. f a1 a2 \/ f a2 a1)                (* totality      *)
+
+let string_cmp s1 s2 =  String.compare s1 s2 <= 0
+
+(* The F* defn just calls down to OCaml, since we know comparison in OCaml is total
+ * just admit it
+ *)
+val string_cmp_total : unit -> Lemma (total_order string string_cmp)
+let string_cmp_total () = admit ()
+
+
 type ti_stack  = list Utils.addr
 let ti_heap    = Utils.heap node
-let ti_globals = Map.t name Utils.addr
-let ti_stats   = int
+type ti_globals = Map.ordmap name Utils.addr (string_cmp_total (); string_cmp)
+
+// -----------------------------------------------------------------------------
+// ti_stats
+// -----------------------------------------------------------------------------
+abstract type ti_stats = int
+
+val ti_stat_initial : ti_stats
+let ti_stat_initial = 0
+
+val ti_stat_inc_steps : ti_stats -> ti_stats
+let ti_stat_inc_steps s = s + 1
+
+
+val ti_stats_get_steps : ti_stats  -> int
+let ti_stats_get_steps s = s
+// -----------------------------------------------------------------------------
+// state
+// -----------------------------------------------------------------------------
 
 unopteq type ti_state = {
   stack   : ti_stack;
@@ -118,3 +138,15 @@ unopteq type ti_state = {
   globals : ti_globals;
   stats   : ti_stats
 }
+
+val apply_to_stats : f : (ti_stats -> ti_stats) -> ti_state -> ti_state
+let apply_to_stats f state =
+  {state with stats = f state.stats}
+
+
+// let compile program =
+//   let sc_defs = program
+//               @ Syntax.prelude_defn
+//               @ Syntax.extra_prelude_defs in
+//   let address_of_main = Map.sel
+//   sc_defs

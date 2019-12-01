@@ -54,3 +54,7 @@ let prelude_defn =
     ("twice", ["f"], EApp (EApp (EVar "compose") (EVar "f"))
                           (EVar "f"))
   ]
+
+
+val extra_prelude_defs : core_program
+let extra_prelude_defs = []

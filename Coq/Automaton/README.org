@@ -1,0 +1,4 @@
+* Automoaton
+- This is a port of the F^{★} Automaton code in [[../../Fstar/fun/Automaton/]]
+- Was originally intended in solving the problem when the F^{★} SMT
+  solver fails and to port over the tactics.
