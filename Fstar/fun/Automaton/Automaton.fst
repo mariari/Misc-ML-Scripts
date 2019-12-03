@@ -159,7 +159,7 @@ val spot_abs_relation : xs : move_set
                       -> Lemma (increasing xs spot ==>
                                           (let {spot = (x, y)}     = spot in
                                            let {spot = (x_n, y_m)} = run spot xs in
-                                           abs x_n > abs x \/ abs y_m > y))
+                                           abs x_n > abs x \/ abs y_m > abs y))
 let spot_abs_relation xs spot = ()
 
 (***** all that is commented out is bad and probably wrong
