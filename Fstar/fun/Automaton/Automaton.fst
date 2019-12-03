@@ -16,6 +16,8 @@ type move_set = list move
 
 (* Useful for the turning machine, when we look in a direction *)
 type direction = move
+
+
 val direction_to_mod_4 : move -> n : nat{n < 4}
 let direction_to_mod_4 = function
   | Left  -> 0
@@ -38,8 +40,7 @@ type base_state = {
 // | 5,0 |     |      |      |       |     |
 
 val app_inst : base_state -> move -> base_state
-let app_inst {spot} move =
-  let (x,y) = spot in
+let app_inst {spot = (x,y)} move =
   { spot =
       match move with
       | Left  -> (x    , y - 1)
@@ -58,7 +59,7 @@ let up    = List.count Up
 let down  = List.count Down
 
 
-val run_n_times : n : nat -> base_state -> move_set -> base_state
+val run_n_times : nat -> base_state -> move_set -> base_state
 let rec run_n_times n s xs =
   match n with
   | 0 -> s
@@ -66,13 +67,13 @@ let rec run_n_times n s xs =
 
 let default_spot = {spot = (0,0)}
 
-let spot_to_int {spot} = let (x,y) = spot in abs x + abs y
+let spot_to_nat {spot} = let (x,y) = spot in abs x + abs y
 
 
-let test = run default_spot [Left; Right; Up; Down]
+let test = run_n_times 10 default_spot [Left; Up]
 
 
-(* TODO ∷ learn to abstract this logic into 1 call, via tactitcs? *)
+(* TODO ∷ learn to abstract this logic into 1 call, via tactics? *)
 
 val y_relationship : xs : move_set
                    → s  : base_state
@@ -118,9 +119,18 @@ let rec proof_bounded_n xs spot n =
     proof_bounded xs spot;
     proof_bounded_n xs spot (n - 1)
 
+
+
+(**** Types about unboundedness *)
+
+type inequal_move xs = left xs <> right xs \/ up xs <> down xs
+
+type increasing xs spot = spot_to_nat (run spot xs) > spot_to_nat spot
+
+(**** Proof about unboundedness *)
 val proof_unbounded : xs   : move_set
                     → spot : base_state
-                    → Lemma (requires left xs <> right xs \/ up xs <> down xs)
+                    → Lemma (requires inequal_move xs)
                             (ensures spot <> run spot xs)
 let proof_unbounded xs s =
   match xs with
@@ -128,11 +138,86 @@ let proof_unbounded xs s =
     y_relationship xs (app_inst s x);
     x_relationship xs (app_inst s x)
 
+val spot_at_zero_relation : xs : move_set{inequal_move xs}
+                         → Lemma (spot_to_nat (run default_spot xs) > 0)
+let spot_at_zero_relation xs =
+  proof_unbounded xs default_spot
+
+val spot_to_nat_relation : xs : move_set
+                         → Lemma (requires inequal_move xs)
+                                 (ensures spot_to_nat (run default_spot xs) > spot_to_nat default_spot)
+let spot_to_nat_relation xs =
+  spot_at_zero_relation xs
+
+
+(***** God analysis is annoying! *)
+// (x,y) increasing ==> spot_to_nat (x + n, y + m)  > spot_to_nat (x,y)
+// |x + n| > |x| \/ |y + m| > |y|
+
+val spot_abs_relation : xs : move_set
+                      -> spot : base_state
+                      -> Lemma (increasing xs spot ==>
+                                          (let {spot = (x, y)}     = spot in
+                                           let {spot = (x_n, y_m)} = run spot xs in
+                                           abs x_n > abs x \/ abs y_m > y))
+let spot_abs_relation xs spot = ()
+
+(***** all that is commented out is bad and probably wrong
+       apply analysis to get good *)
+// val continuous_relation : xs   : move_set
+//                         → spot : base_state
+//                         → Lemma (requires increasing xs spot)
+//                                 (ensures
+//                                  ( let run_spot_nat     = spot_to_nat (run spot xs) in
+//                                    let spot_nat         = spot_to_nat spot in
+//                                    let run_run_spot_nat = spot_to_nat (run (run spot xs) xs) in
+//                                    let diff_1           = run_spot_nat - spot_nat in
+//                                    let diff_2           = run_run_spot_nat - run_spot_nat in
+//                                     diff_1 = diff_2
+//                                    ))
+// (100, -20) - 50 + 70
+// let continuous_relation xs spot =
+//   if (left xs <> right xs || up xs <> down xs)
+//   then begin
+//     proof_unbounded xs spot;
+//     proof_unbounded xs (run spot xs);
+//     assert (spot_to_nat (run spot xs) - spot_to_nat spot > 0);
+//     assert (spot_to_nat (run (run spot xs) xs) - spot_to_nat (run spot xs) > 0);
+//     admit ()
+//   end else
+//     proof_bounded xs spot
+
+
+// val spot_relation : xs : move_set
+//                   -> spot : base_state
+//                   -> n    : nat{n > spot_to_nat spot}
+//                   → Lemma (requires inequal_move xs)
+//                           (ensures spot_to_nat (run_n_times n spot xs) >= spot_to_nat spot)
+// let rec spot_relation xs spot n =
+//   match n with
+//   | 1 -> ()
+//   | n ->
+//     proof_unbounded xs spot;
+//     spot_relation xs spot (n - 1)
+
+// val spot_to_nat_relation_n
+//   : xs : move_set
+//   → n  : nat{n > 0}
+//   → Lemma (requires inequal_move xs)
+//           (ensures spot_to_nat (run_n_times n default_spot xs)
+//                    > spot_to_nat (run_n_times (n - 1) default_spot xs))
+
+// let rec spot_to_nat_relation_n xs n =
+//   match n with
+//   | 1 → spot_at_zero_relation xs
+//   | n → spot_to_nat_relation_n xs (n - 1)
+
+
 val proof_unbounded_n : xs   : move_set
                       → spot : base_state
                       → n    : nat
-                      → Lemma (requires left xs <> right xs \/ up xs <> down xs)
-                              (ensures exists m. spot_to_int (run_n_times m spot xs) > n)
+                      → Lemma (requires inequal_move xs)
+                              (ensures exists m. spot_to_nat (run_n_times m spot xs) > n)
 let rec proof_unbounded_n xs spot n =
   // TODO!
   admit ()
