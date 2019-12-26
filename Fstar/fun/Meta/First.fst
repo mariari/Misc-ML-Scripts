@@ -8,7 +8,7 @@ open FStar.Tactics.Derived
 
 let add_1_generator () : Tac unit =
   let x = intro () in
-  let tm = (`(`#x + `@1)) in
+  let tm = (`(`#x + 1)) in
   apply tm
 
 val add_1 : int -> int
@@ -43,6 +43,24 @@ let mk_add () : Tac unit =
 
 let add : int -> int -> int =
   _ by (mk_add ())
+
+let mk_add' x () : Tac unit =
+  let y = intro () in
+  apply (`(+) (`@x));
+  exact y
+
+
+let add' (x : int) : int -> int =
+  _ by (mk_add' x ())
+
+
+let mk_add''' x () : Tac unit =
+  let y = intro () in
+  apply (`( (`@x) + (`#y) ))
+
+let add'' (x : int) : int -> int =
+  _ by (mk_add''' x ())
+
 
 
 type t1 =
