@@ -4,6 +4,7 @@ open Syntax
 open FStar.Tactics
 open FStar.List
 module Map = FStar.OrdMap
+module Heap = Utils.Heap
 
 
 type n = nat
@@ -109,8 +110,8 @@ val string_cmp_total : unit -> Lemma (total_order string string_cmp)
 let string_cmp_total () = admit ()
 
 
-type ti_stack  = list Utils.addr
-let ti_heap    = Utils.heap node
+type ti_stack   = list Utils.addr
+let  ti_heap    = Heap.t node
 type ti_globals = Map.ordmap name Utils.addr (string_cmp_total (); string_cmp)
 
 // -----------------------------------------------------------------------------

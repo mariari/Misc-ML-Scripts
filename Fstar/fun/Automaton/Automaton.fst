@@ -75,28 +75,60 @@ let test = run_n_times 10 default_spot [Left; Up]
 
 (* TODO ∷ learn to abstract this logic into 1 call, via tactics? *)
 
+let generate_logic f : Tac unit =
+  let xs = intro () in
+  let s  = intro () in
+  let test =
+  `(match (`#xs) with
+    | [] -> ()
+    | Up    :: xs -> (`@f) xs (app_inst (`#s) Up)
+    | Down  :: xs -> (`@f) xs (app_inst (`#s) Down)
+    | Left  :: xs -> (`@f) xs (app_inst (`#s) Left)
+    | Right :: xs -> (`@f) xs (app_inst (`#s) Right)
+  )
+  in
+  apply test
+
+let generate_logic' f (xs : move_set) (s : base_state) : Tac unit =
+  let test =
+  `(match (`@xs) with
+    | [] -> ()
+    | Up    :: ys -> (`@f) ys (app_inst (`@s) Up)
+    | Down  :: ys -> (`@f) ys (app_inst (`@s) Down)
+    | Left  :: ys -> (`@f) ys (app_inst (`@s) Left)
+    | Right :: ys -> (`@f) ys (app_inst (`@s) Right)
+  )
+  in
+  apply test
+
+  // let te = 
+  // match xs with
+  // | []     -> exact (`())
+  // | y :: ys ->
+  //     let te = (`((`@f) (`@ys) (app_inst (`@s) (`@y)))) in
+  //     exact te
+
+
+val y_relationship : xs : move_set
+                   → s  : base_state
+                   → Lemma (snd s.spot + (right xs - left xs) == (snd (run s xs).spot))
+let rec y_relationship xs s = _ by (generate_logic' y_relationship xs s)
+
 val y_relationship : xs : move_set
                    → s  : base_state
                    → Lemma (snd s.spot + (right xs - left xs) == (snd (run s xs).spot))
 let rec y_relationship xs s =
   match xs with
-  | []         -> ()
-  | Up    :: xs -> y_relationship xs (app_inst s Up)
-  | Down  :: xs -> y_relationship xs (app_inst s Down)
-  | Left  :: xs -> y_relationship xs (app_inst s Left)
-  | Right :: xs -> y_relationship xs (app_inst s Right)
-
+  | []      -> ()
+  | x  :: xs -> y_relationship xs (app_inst s x)
 
 val x_relationship : xs : move_set
                    → s  : base_state
                    → Lemma (fst s.spot + (down xs - up xs) == (fst (run s xs).spot))
 let rec x_relationship xs s =
   match xs with
-  | []         -> ()
-  | Up    :: xs -> x_relationship xs (app_inst s Up)
-  | Down  :: xs -> x_relationship xs (app_inst s Down)
-  | Left  :: xs -> x_relationship xs (app_inst s Left)
-  | Right :: xs -> x_relationship xs (app_inst s Right)
+  | []      -> ()
+  | x  :: xs -> x_relationship xs (app_inst s x)
 
 val proof_bounded : xs  : move_set
                   -> spot : base_state
