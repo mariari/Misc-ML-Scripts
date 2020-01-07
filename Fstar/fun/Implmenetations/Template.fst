@@ -180,3 +180,48 @@ let compile program =
 
 
 let compile_test = compile ["main", ["x"], EVar "x"]
+
+
+(**** 2.3.5 The evaluator *)
+
+val do_admin : ti_state -> ti_state
+let do_admin = apply_to_stats ti_stat_inc_steps
+
+
+val is_data_node : node -> bool
+let is_data_node = function
+  | NNum n                      -> true
+  | NSuperComb _ _ _ | Napp _ _ -> false
+
+// maybe make this error for the None case?
+val ti_final : s : ti_state{Cons? s.stack} -> bool
+let ti_final state = match state.stack with
+  | [sole_addr] ->
+    begin match Heap.lookup state.heap sole_addr with
+    | Some n -> is_data_node n
+    | None   -> true
+    end
+  | _ :: _    -> false
+
+
+val step : ti_state{Cons? s.stack} -> ti_state
+let step state =
+  let {stack; dump ; heap; globals; stats} = state in
+  let dispatch = function
+    // make NNum illegal here, thus can't be on top!
+    | NNum n                  -> num_step state n
+    | Napp a1 a2              -> ap_step state a1 a2
+    | NSuperComb sc args body -> sc_step state sc args body
+  // just map with this!
+  in match Heap.lookup heap with
+    | Some n -> dispatch n
+    | None   -> state
+
+
+let rec eval state =
+  let next_state = do_admin (step state) in
+  let rest_states =
+    if ti_final state
+    then []
+    else eval next_state
+  in state :: rest_states
