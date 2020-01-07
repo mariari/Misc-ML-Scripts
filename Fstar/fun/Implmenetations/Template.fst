@@ -3,9 +3,9 @@ module Template
 open Syntax
 open FStar.Tactics
 open FStar.List
+open Utils
 module Map = FStar.OrdMap
 module Heap = Utils.Heap
-
 
 type n = nat
 let  d = nat
@@ -52,7 +52,8 @@ let rec eval_mult state =
   then [state]
   else state :: eval_mult (step_mult state)
 
-let test6 = fourth (List.Tot.last (eval_mult (mult_start 2 3)))
+// ocaml extraction lacks last for whatever reason!
+// let test6 = fourth (List.Tot.last (eval_mult (mult_start 2 3)))
 
 (***** exercise 2.2 *)
 
@@ -93,7 +94,7 @@ type name = string
 
 type node =
   | Napp       : Utils.addr -> Utils.addr -> node
-  | NSuperComb : name -> list name -> core_program -> node
+  | NSuperComb : name -> list name -> core_expr -> node
   | NNum       : int -> node
 
 type total_order (a:eqtype) (f: (a -> a -> Tot bool)) =
@@ -145,9 +146,37 @@ let apply_to_stats f state =
   {state with stats = f state.stats}
 
 
-// let compile program =
-//   let sc_defs = program
-//               @ Syntax.prelude_defn
-//               @ Syntax.extra_prelude_defs in
-//   let address_of_main = Map.sel
-//   sc_defs
+val allocate_sc : ti_heap -> core_sc_defn -> (ti_heap * (name * addr))
+let allocate_sc heap (name, args, body) =
+  let heap, addr = Heap.alloc heap (NSuperComb name args body) in
+  heap, (name, addr)
+
+val build_initial_heap : list core_sc_defn -> ti_heap * list (name * addr)
+let build_initial_heap sc_defs = map_accum_l allocate_sc Heap.initial sc_defs
+
+val compile : list core_sc_defn -> Prims.Tot (c_or string ti_state)
+let compile program =
+  let sc_defs = program
+              @ Syntax.prelude_defn
+              @ Syntax.extra_prelude_defs in
+  let initial_heap, globals = build_initial_heap sc_defs in
+  // for some reason this forgets that we proclaimed string_cmp_total ()
+  // let globals_map           = Utils.list_to_map_t globals in
+  let globals_map           = Utils.list_to_map globals (string_cmp_total (); string_cmp) in
+  let address_of_main       = Map.select "main" globals_map in
+  let initial_stack         = [address_of_main] in
+  match address_of_main with
+  | Some address ->
+    let initial_stack = [address] in
+    Right
+      ({ stack = initial_stack
+      ; dump  = initial_ti_dump
+      ; heap  = initial_heap
+      ; globals = globals_map
+      ; stats   = ti_stat_initial
+      })
+  | None ->
+    Left "No main in program"
+
+
+let compile_test = compile ["main", ["x"], EVar "x"]

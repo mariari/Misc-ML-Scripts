@@ -17,7 +17,7 @@ type expr (a : Type u#a) : Type u#a =
 and alter (b : Type u#b) : Type u#b =
   | Alt : int → list string -> expr b -> alter b
 
-type expr_program = expr string
+type core_expr = expr string
 
 (* Super combinator requirements *)
 type sc_defn a    = string * list a * expr a
