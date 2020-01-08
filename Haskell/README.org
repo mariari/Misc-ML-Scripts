@@ -4,14 +4,14 @@ This sub-directory isn't the /most/ interesting, however there may be
 gems if one is newer to the Haskell programming language.
 
 Some notable files are
-1. _=Life.hs=_
+1. =Life.hs=
    - This is code adapted from a 5~ line APL program to
      simulate the life game
-2. _=Free.hs=_
+2. =Free.hs=
    - Playing and useage of the Free Monad
-3. _=data-structures/=_
+3. =data-structures/=
    - Various data structures made in Haskell
-4. _=interesting-problems.hs=_
+4. =interesting-problems.hs=
    - This file is for code solutions to small but interesting problems
-5. _=Modern-compilers=_
+5. =Modern-compilers=
    - A Haskell solution to "Modern Compilers in ML"

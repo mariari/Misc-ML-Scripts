@@ -2,15 +2,15 @@
 
 
 Some notable files are
-1. _=interp.ml=_
+1. =interp.ml=
    - a mini interpreter in OCaml
-2. _=nameless.ml=_
+2. =nameless.ml=
    - Implements da brujin indices
-3. _=nameless-boehm-beraducci.ml=_
+3. =nameless-boehm-beraducci.ml=
    - Reimplements nameless, but using rank 2 F_ω
-4. _=nameless-final-first.ml=_
+4. =nameless-final-first.ml=
    - tries to do nameless-bb again but this time with module functors,
      this is the first flawed attempt
-5. _=utilities.ml=_
+5. =utilities.ml=
    - This has a few functions which may be useful to whomever reads this.
 
