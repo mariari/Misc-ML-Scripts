@@ -1,6 +1,5 @@
 module Utils
 
-
 module Map = FStar.OrdMap
 
 type addr = int
@@ -44,3 +43,25 @@ let list_to_map_t #a #b #cmp xs  =
   List.Tot.Base.fold_right (fun (k,v) acc -> Map.update k v acc)
                            xs
                            Map.empty
+
+val list_drop : nat -> xs : list 'a -> Tot (list 'a) (decreases %[xs])
+let rec list_drop num xs =
+  match num with
+  | 0 -> xs
+  | n ->
+    match xs with
+    | x :: xs -> list_drop (num - 1) xs
+    | []     -> []
+
+module LT = FStar.List.Tot.Base
+
+val list_drop_only : n : nat
+                   -> xs : list 'a{LT.length xs >= n}
+                   -> ys : list 'a{LT.length ys = LT.length xs - n}
+let rec list_drop_only num xs =
+  match num with
+  | 0 -> xs
+  | n ->
+    match xs with
+    | x :: xs -> list_drop_only (num - 1) xs
+

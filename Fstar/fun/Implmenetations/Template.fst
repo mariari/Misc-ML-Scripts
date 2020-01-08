@@ -184,6 +184,9 @@ let compile_test = compile ["main", ["x"], EVar "x"]
 
 (**** 2.3.5 The evaluator *)
 
+type error =
+  | Not_Enough_Stack
+
 val do_admin : ti_state -> ti_state
 let do_admin = apply_to_stats ti_stat_inc_steps
 
@@ -203,12 +206,33 @@ let ti_final state = match state.stack with
     end
   | _ :: _    -> false
 
+val is_top : node -> bool
+let is_top n = not (is_data_node n)
 
-val step : ti_state{Cons? s.stack} -> ti_state
+
+val ap_step : ti_state -> addr -> addr -> ti_state
+let ap_step state a1 a2 = {state with stack = a1 :: state.stack }
+
+val sc_step : ti_state -> name -> list name -> core_expr -> c_or error ti_state
+
+let sc_step state sc_name arg_names body =
+  let len_args = List.Tot.Base.length arg_names + 1 in
+  if len_args <= List.Tot.Base.length state.stack
+  then
+    // our map doesn't really have an append, so we will have to fold insert!
+    let env = 2 in
+    // let new_heap, result_addr = instantiate body state.heap env in
+    let new_stack = Utils.list_drop_only len_args state.stack in
+    Left Not_Enough_Stack
+  else Left Not_Enough_Stack
+
+val step : s : ti_state{Cons? s.stack} -> ti_state
 let step state =
   let {stack; dump ; heap; globals; stats} = state in
   let dispatch = function
     // make NNum illegal here, thus can't be on top!
+    // However the decision algorithm, would be the same as running the program!
+    // this could be ruled out via types however
     | NNum n                  -> num_step state n
     | Napp a1 a2              -> ap_step state a1 a2
     | NSuperComb sc args body -> sc_step state sc args body
