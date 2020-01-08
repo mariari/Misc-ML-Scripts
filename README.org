@@ -1,0 +1,27 @@
+* Misc-ML-Scripts
+This Repository contains various code examples in the ML programming
+language family.
+
+
+- This repository is split between the various languages.
+
+- Each language repository has their own READMEs for interesting files
+  to look out for.
+
+  + Sadly not all files are interesting, this is due to many of them
+    being tiny ideas Ι had.l
+
+    - This mainly applies to the Haskell directories!
+
+- The most interesting directory ordering for anyone reading this
+  would probably be.
+
+  1. Fstar
+
+  2. OCaml
+
+  3. Haskell
+
+  4. Idris
+
+  5. Coq
