@@ -4,11 +4,13 @@ module Map = FStar.OrdMap
 
 type addr = int
 
+module LT = FStar.List.Tot.Base
+
 val map_accum_l (#acc #a #b : Type) :
                 (acc -> a -> (acc * b))
                 -> acc
                 -> xs : list a
-                -> Tot (acc * list b)
+                -> Tot (acc * (ys : list b))
                       (decreases %[xs])
 let rec map_accum_l #_ #_ #_ f s = function
   | []     -> s, []
@@ -17,6 +19,20 @@ let rec map_accum_l #_ #_ #_ f s = function
     let s, ys = map_accum_l f s xs in
     s, y :: ys
 
+val map_accum_length_same (#acc #a #b : Type)
+  : f  : (acc -> a -> (acc * b))
+  -> ac : acc
+  -> xs : list a
+  -> Lemma (requires True)
+          (ensures (let (_, zs) = map_accum_l f ac xs in
+                   LT.length zs = LT.length xs))
+           (decreases %[xs])
+           [SMTPat (map_accum_l f ac xs)]
+let rec map_accum_length_same #_ #_ #_ f acc = function
+  | []     -> ()
+  | hd :: tl ->
+    let s, _ = f acc hd in
+    map_accum_length_same f s tl
 
 let test = map_accum_l (fun x acc -> x + acc, x) 0 [1;2;3]
 
@@ -53,8 +69,6 @@ let rec list_drop num xs =
     | x :: xs -> list_drop (num - 1) xs
     | []     -> []
 
-module LT = FStar.List.Tot.Base
-
 val list_drop_only : n : nat
                    -> xs : list 'a{LT.length xs >= n}
                    -> ys : list 'a{LT.length ys = LT.length xs - n}
@@ -86,3 +100,13 @@ val split_only : n : nat
                -> ( zs : list a{LT.length zs = n}
                  * ys : list a{LT.length ys = LT.length xs - n})
 let split_only n #a xs = split_only_acc n #a xs []
+
+
+val zip_same_len
+  : xs : list 'a
+  -> ys : list 'b{LT.length ys = LT.length xs}
+  -> zs : list ('a * 'b){LT.length zs = LT.length ys}
+let rec zip_same_len xs ys =
+  match xs, ys with
+  | x :: xs, y :: ys -> (x, y) :: zip_same_len xs ys
+  | []    , []     -> []

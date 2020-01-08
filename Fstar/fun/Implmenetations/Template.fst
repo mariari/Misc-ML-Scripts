@@ -102,13 +102,18 @@ type total_order (a:eqtype) (f: (a -> a -> Tot bool)) =
  /\ (forall a1 a2 a3. f a1 a2 /\ f a2 a3 ==> f a1 a3)  (* transitivity  *)
  /\ (forall a1 a2. f a1 a2 \/ f a2 a1)                (* totality      *)
 
-let string_cmp s1 s2 =  String.compare s1 s2 <= 0
+let string_cmp' s1 s2 =  String.compare s1 s2 <= 0
 
 (* The F* defn just calls down to OCaml, since we know comparison in OCaml is total
  * just admit it
  *)
-val string_cmp_total : unit -> Lemma (total_order string string_cmp)
+val string_cmp_total : unit -> Lemma (total_order name string_cmp')
 let string_cmp_total () = admit ()
+
+// hack function so, the data structure doesn't forget the proof!
+val string_cmp : Map.cmp string
+let string_cmp = string_cmp_total (); string_cmp'
+
 
 
 type ti_stack   = list Utils.addr
@@ -160,9 +165,7 @@ let compile program =
               @ Syntax.prelude_defn
               @ Syntax.extra_prelude_defs in
   let initial_heap, globals = build_initial_heap sc_defs in
-  // for some reason this forgets that we proclaimed string_cmp_total ()
-  // let globals_map           = Utils.list_to_map_t globals in
-  let globals_map           = Utils.list_to_map globals (string_cmp_total (); string_cmp) in
+  let globals_map           = Utils.list_to_map_t globals in
   let address_of_main       = Map.select "main" globals_map in
   let initial_stack         = [address_of_main] in
   match address_of_main with
@@ -216,7 +219,9 @@ val ap_step : ti_state -> addr -> addr -> ti_state
 let ap_step state a1 a2 = {state with stack = a1 :: state.stack}
 
 // Improve types by comments below
-val get_args : ti_heap -> s : ti_stack{Cons? s} -> c_or error (list addr)
+val get_args : ti_heap
+             -> s : ti_stack{Cons? s}
+             -> c_or error (list addr)
 let get_args heap = function
   | sc :: stack ->
     let get_arg acc addr =
@@ -239,11 +244,25 @@ let sc_step state sc_name arg_names body =
   if len_args <= List.Tot.Base.length state.stack
   then
     // our map doesn't really have an append, so we will have to fold insert!
-    let env = 2 in
-    // let new_heap, result_addr = instantiate body state.heap env in
-    let arg_stack, val_stack = Utils.split_only len_args state.stack in
+    let arg_stack
+        , val_stack  = Utils.split_only len_args state.stack in
+    // this match once we better type the system!
+    match get_args state.heap arg_stack with
+    | Left err    -> Left err
+    | Right addrs ->
+      // notice we don't have to prove the length explicitly
+      let arg_bindings = Utils.zip_same_len arg_names addrs in
+      let globals : ti_globals = state.globals in
+      // let test = Map.update #name #Utils.addr #(string_cmp_total (); string_cmp) "A" 3 globals in
+      let globals : ti_globals = state.globals in
+      let env =
+        List.Tot.Base.fold_left2 (fun (glob : ti_globals) name args -> Map.update name args glob)
+                                 globals
+                                 arg_names
+                                 addrs
+      in Left Not_Enough_Stack
+  else
     Left Not_Enough_Stack
-  else Left Not_Enough_Stack
 
 val step : s : ti_state{Cons? s.stack} -> ti_state
 let step state =
