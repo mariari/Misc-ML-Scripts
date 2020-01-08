@@ -186,6 +186,8 @@ let compile_test = compile ["main", ["x"], EVar "x"]
 
 type error =
   | Not_Enough_Stack
+  | Node_Not_In_Heap
+  | Invalid_Node_Type
 
 val do_admin : ti_state -> ti_state
 let do_admin = apply_to_stats ti_stat_inc_steps
@@ -211,10 +213,27 @@ let is_top n = not (is_data_node n)
 
 
 val ap_step : ti_state -> addr -> addr -> ti_state
-let ap_step state a1 a2 = {state with stack = a1 :: state.stack }
+let ap_step state a1 a2 = {state with stack = a1 :: state.stack}
+
+// Improve types by comments below
+val get_args : ti_heap -> s : ti_stack{Cons? s} -> c_or error (list addr)
+let get_args heap = function
+  | sc :: stack ->
+    let get_arg acc addr =
+      // We could proclaim in a refinement type that the nodes leading up to here
+      // has to be app nodes. Otherwise the system fails!
+      // So even the Some/None could go away!
+      match Heap.lookup heap addr with
+      | None              -> (Some Node_Not_In_Heap, 0)
+      | Some (Napp _ arg) -> (acc, arg)
+      | Some _            -> (Some Invalid_Node_Type, 0)
+    in
+    // this also means we can turn a map_accum_l into a map!
+    match Utils.map_accum_l get_arg None stack with
+    | None    , xs -> Right xs
+    | Some err, _  -> Left err
 
 val sc_step : ti_state -> name -> list name -> core_expr -> c_or error ti_state
-
 let sc_step state sc_name arg_names body =
   let len_args = List.Tot.Base.length arg_names + 1 in
   if len_args <= List.Tot.Base.length state.stack
@@ -222,7 +241,7 @@ let sc_step state sc_name arg_names body =
     // our map doesn't really have an append, so we will have to fold insert!
     let env = 2 in
     // let new_heap, result_addr = instantiate body state.heap env in
-    let new_stack = Utils.list_drop_only len_args state.stack in
+    let arg_stack, val_stack = Utils.split_only len_args state.stack in
     Left Not_Enough_Stack
   else Left Not_Enough_Stack
 
@@ -235,6 +254,7 @@ let step state =
     // this could be ruled out via types however
     | NNum n                  -> num_step state n
     | Napp a1 a2              -> ap_step state a1 a2
+    // We can make This call always succeed, just better type our system!
     | NSuperComb sc args body -> sc_step state sc args body
   // just map with this!
   in match Heap.lookup heap with

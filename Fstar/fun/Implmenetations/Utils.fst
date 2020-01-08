@@ -65,3 +65,24 @@ let rec list_drop_only num xs =
     match xs with
     | x :: xs -> list_drop_only (num - 1) xs
 
+
+val split_only_acc : n    : nat
+                   -> #a  : Type
+                   -> xs  : list 'a{LT.length xs >= n}
+                   -> acc : list 'a
+                   -> ( zs : list 'a {LT.length zs = n + LT.length acc}
+                      * ys : list 'a{LT.length ys = LT.length xs - n})
+let rec split_only_acc num #a xs acc =
+  match num with
+  | 0 -> List.Tot.Properties.rev_length acc;
+        (LT.rev acc, xs)
+  | n ->
+    match xs with
+    | x :: xs -> split_only_acc (num - 1) #a xs (x :: acc)
+
+val split_only : n : nat
+               -> (#a : Type)
+               -> xs : list a{LT.length xs >= n}
+               -> ( zs : list a{LT.length zs = n}
+                 * ys : list a{LT.length ys = LT.length xs - n})
+let split_only n #a xs = split_only_acc n #a xs []
