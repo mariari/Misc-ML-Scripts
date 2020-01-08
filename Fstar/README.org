@@ -1,17 +1,27 @@
-* F^{★}
+* Misc-F^{★}-Scripts
 This directory contains a bunch of F^{★} work along with helpers
-
 
 ** Notable files
 - _Making F^{*} easier to run_
-  - =cache-fstar-source.lisp=
-    + This lisp file will cache F^{★} code recursively for you, so call it
-      once on a file via
-      #+BEGIN_SRC lisp
-        (fix-script:generate-cache "file.fst")
-      #+END_SRC
-      * *Probably* has to be in the same directory as the file, as F^{★}
-        can be rather finicky with names.
-      * This will also cache your standard library
-  - =Interopt/=
-    + See the readme for that folder
+  1. _=fun=_
+     1. _=Automaton=_
+        - This proves the correctness of the =four-direction-machine=
+        - Later an isomorphism will be proved about this machine, and
+          the =turn-machine=
+     2. _=Implementations=_
+        - Working through Implementing Functional Languages: a
+          tutorial in F^*.
+          + This books includes the =template-machine=, =G-machine=,
+            =TIM-machine=, etc.
+        - See the =README= in that directory for more information
+  2. _=Interopt/=_
+     + See the =README= for that folder
+  3. =cache-fstar-source.lisp=
+     + This lisp file will cache F^{★} code recursively for you, so call it
+       once on a file via
+       #+BEGIN_SRC lisp
+         (fix-script:generate-cache "file.fst")
+       #+END_SRC
+       * *Probably* has to be in the same directory as the file, as F^{★}
+         can be rather finicky with names.
+       * This will also cache your standard library

@@ -114,13 +114,13 @@ val y_relationship : xs : move_set
                    → Lemma (snd s.spot + (right xs - left xs) == (snd (run s xs).spot))
 let rec y_relationship xs s = _ by (generate_logic' y_relationship xs s)
 
-val y_relationship : xs : move_set
-                   → s  : base_state
-                   → Lemma (snd s.spot + (right xs - left xs) == (snd (run s xs).spot))
-let rec y_relationship xs s =
-  match xs with
-  | []      -> ()
-  | x  :: xs -> y_relationship xs (app_inst s x)
+// val y_relationship : xs : move_set
+//                    → s  : base_state
+//                    → Lemma (snd s.spot + (right xs - left xs) == (snd (run s xs).spot))
+// let rec y_relationship xs s =
+//   match xs with
+//   | []      -> ()
+//   | x  :: xs -> y_relationship xs (app_inst s x)
 
 val x_relationship : xs : move_set
                    → s  : base_state

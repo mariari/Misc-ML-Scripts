@@ -1,0 +1,16 @@
+* Misc-OCaml-Scripts
+
+
+Some notable files are
+1. _=interp.ml=_
+   - a mini interpreter in OCaml
+2. _=nameless.ml=_
+   - Implements da brujin indices
+3. _=nameless-boehm-beraducci.ml=_
+   - Reimplements nameless, but using rank 2 F_ω
+4. _=nameless-final-first.ml=_
+   - tries to do nameless-bb again but this time with module functors,
+     this is the first flawed attempt
+5. _=utilities.ml=_
+   - This has a few functions which may be useful to whomever reads this.
+

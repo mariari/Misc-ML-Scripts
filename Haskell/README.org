@@ -1,0 +1,17 @@
+* Misc-Haskell-Scripts
+
+This sub-directory isn't the /most/ interesting, however there may be
+gems if one is newer to the Haskell programming language.
+
+Some notable files are
+1. _=Life.hs=_
+   - This is code adapted from a 5~ line APL program to
+     simulate the life game
+2. _=Free.hs=_
+   - Playing and useage of the Free Monad
+3. _=data-structures/=_
+   - Various data structures made in Haskell
+4. _=interesting-problems.hs=_
+   - This file is for code solutions to small but interesting problems
+5. _=Modern-compilers=_
+   - A Haskell solution to "Modern Compilers in ML"
