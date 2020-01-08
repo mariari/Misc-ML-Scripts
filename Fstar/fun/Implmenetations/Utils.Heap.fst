@@ -58,4 +58,3 @@ let lookup #_ {maps_to} val' = Map.select val' maps_to
 
 val size (#a : Type) : t a -> int
 let size #a = Mkt?.size
-

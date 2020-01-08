@@ -214,9 +214,9 @@ let ti_final state = match state.stack with
 val is_top : node -> bool
 let is_top n = not (is_data_node n)
 
-
-val ap_step : ti_state -> addr -> addr -> ti_state
-let ap_step state a1 a2 = {state with stack = a1 :: state.stack}
+// ---------------------------------------------------------------
+// Helpers for sc_step
+// ---------------------------------------------------------------
 
 // Improve types by comments below
 val get_args : ti_heap
@@ -238,6 +238,12 @@ let get_args heap = function
     | None    , xs -> Right xs
     | Some err, _  -> Left err
 
+
+
+// ---------------------------------------------------------------
+// Helpers for eval/step
+// ---------------------------------------------------------------
+
 val sc_step : ti_state -> name -> list name -> core_expr -> c_or error ti_state
 let sc_step state sc_name arg_names body =
   let len_args = List.Tot.Base.length arg_names + 1 in
@@ -251,18 +257,17 @@ let sc_step state sc_name arg_names body =
     | Left err    -> Left err
     | Right addrs ->
       // notice we don't have to prove the length explicitly
-      let arg_bindings = Utils.zip_same_len arg_names addrs in
-      let globals : ti_globals = state.globals in
-      // let test = Map.update #name #Utils.addr #(string_cmp_total (); string_cmp) "A" 3 globals in
-      let globals : ti_globals = state.globals in
       let env =
-        List.Tot.Base.fold_left2 (fun (glob : ti_globals) name args -> Map.update name args glob)
-                                 globals
+        List.Tot.Base.fold_left2 (fun glob name args -> Map.update name args glob)
+                                 state.globals
                                  arg_names
                                  addrs
       in Left Not_Enough_Stack
   else
     Left Not_Enough_Stack
+
+val ap_step : ti_state -> addr -> addr -> ti_state
+let ap_step state a1 a2 = {state with stack = a1 :: state.stack}
 
 val step : s : ti_state{Cons? s.stack} -> ti_state
 let step state =
