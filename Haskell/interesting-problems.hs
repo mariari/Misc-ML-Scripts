@@ -1,6 +1,9 @@
 import Data.Semigroup
 import Control.Applicative
 import Data.Char (isSpace)
+import Numeric.Natural
+import Data.Bits(xor)
+import Data.List(mapAccumR)
 -- Question from Guy Steele
 
 -- maxgen is just a poor mans scanl!
@@ -133,3 +136,49 @@ convert num
   where
     showN = show num
     len   = length showN
+
+
+-- Multiplying lists of numbers ------------------------------------------------------------
+
+data Numb
+  = N { negative :: Bool
+      , numbers :: [Natural]
+      }
+  deriving (Show, Eq)
+
+mult :: Numb -> Numb -> Numb
+mult (N neg1 numb1) (N neg2 numb2) =
+  N (xor neg1 neg2) (dropZeros (foldr addSingleNats [] (extraZeros numbersMulted)))
+  where
+    dropZeros     = dropWhile (== 0)
+    numbersMulted = scalorMult <$> numb2
+    scalorMult x  = (x *) <$> numb1
+
+addSingleNats :: [Natural] -> [Natural] -> [Natural]
+addSingleNats xs ys =
+  carry : arr
+  where
+    (carry,arr)   = mapAccumR f 0 added
+    (nXs,nYs)     = padFront xs ys
+    added         = zipWith (+) nXs nYs
+    f i carryOver = ((i + carryOver) `div` 10, (i + carryOver) `rem` 10)
+
+
+padFront :: (Num a1, Num a2) => [a2] -> [a1] -> ([a2], [a1])
+padFront xs ys
+  | xsl > ysl =
+    (xs, replicate (xsl - ysl) 0 <> ys)
+  | xsl < ysl =
+    (replicate (ysl - xsl) 0 <> xs, ys)
+  | otherwise = (xs,ys)
+  where
+    xsl = length xs
+    ysl = length ys
+
+
+extraZeros :: Num a => [[a]] -> [[a]]
+extraZeros xss = recur xss len
+  where
+    len = length xss - 1
+    recur (xs:xss) i = xs <> replicate i 0 : recur xss (pred i)
+    recur [] _ = []
