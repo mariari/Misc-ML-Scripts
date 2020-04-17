@@ -3,7 +3,7 @@ import Control.Applicative
 import Data.Char (isSpace)
 import Numeric.Natural
 import Data.Bits(xor)
-import Data.List(mapAccumR)
+import Data.List(mapAccumR, mapAccumL)
 -- Question from Guy Steele
 
 -- maxgen is just a poor mans scanl!
@@ -182,3 +182,24 @@ extraZeros xss = recur xss len
     len = length xss - 1
     recur (xs:xss) i = xs <> replicate i 0 : recur xss (pred i)
     recur [] _ = []
+
+
+-- sort like x1 ≤ x2 ≥ x3 ≤ x4 ≥ x5 ...
+sortOdd :: Ord a => [a] -> [a]
+sortOdd = sortOdd' . sortFirst
+
+sortOdd' []       = []
+sortOdd' (x : xs) = ordered <> [last]
+  where
+    ((last, _),ordered) = mapAccumL f (x, True) xs
+    f (ele, b) n
+      | (ele < n && b) || ele > n =
+        ((n, not b), ele)
+      | otherwise =
+        ((ele, not b), n)
+
+sortFirst [x] = [x]
+sortFirst []  = []
+sortFirst (x : x' : xs)
+  | x < x'    = x  : x' : xs
+  | otherwise = x' : x  : xs
