@@ -15,24 +15,25 @@
  * │ acc 3      │ 5_171.81us │ 600.00kw │ 418_948.07w │ 418_948.07w │     73.47% │
  * │ nat 3      │ 3_391.44us │ 300.00kw │ 171_337.72w │ 171_337.72w │     48.18% │
  * │ List.map 3 │ 4_776.07us │ 584.98kw │ 385_391.23w │ 385_391.23w │     67.85% │
+ * └────────────┴────────────┴──────────┴─────────────┴─────────────┴────────────┘
  *)
 
 open Core
 open Core_bench
 
 let map_cps f xs =
-  let rec loop xs k =
+  let rec loop f xs k =
     match xs with
-    | x :: xs -> loop xs (fun y -> (k (f x :: y)))
+    | x :: xs -> loop f xs (fun y -> (k (f x :: y)))
     | []      -> k []
-  in loop xs ident
+  in loop f xs ident
 
 let map_acc f xs =
-  let rec loop xs acc =
+  let rec loop f xs acc =
     match xs with
-    | x :: xs -> loop xs (f x :: acc)
+    | x :: xs -> loop f xs (f x :: acc)
     | []      -> List.rev acc
-  in loop xs []
+  in loop f xs []
 
 
 let rec map_nat f = function

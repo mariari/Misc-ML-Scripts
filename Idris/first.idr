@@ -7,13 +7,18 @@ getYes : (res : Dec p) -> case res of { Yes _ => p ; No _ => () }
 getYes (Yes prf)   = prf
 getYes (No contra) = ()
 
-test : IO ()
-test = do
-  s <- getLine
+testS : String -> IO ()
+testS s =
   case isLTE (1 + 10) (length s) of
     Yes p => do
       let i = lteTransitive (getYes (isLTE 3 11)) p
       -- we don't have to pass i
-      print (str_index' 2 s {p = i})
+      -- print (str_index' 2 s {p = i})
+      print (str_index' 2 s)
     No _ =>
       print "sad"
+
+
+test : IO ()
+test = do
+  getLine >>= testS

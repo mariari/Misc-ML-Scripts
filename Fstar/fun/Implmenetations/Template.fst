@@ -172,11 +172,11 @@ let compile program =
   | Some address ->
     let initial_stack = [address] in
     Right
-      ({ stack = initial_stack
-      ; dump  = initial_ti_dump
-      ; heap  = initial_heap
-      ; globals = globals_map
-      ; stats   = ti_stat_initial
+      ({ stack   = initial_stack
+       ; dump    = initial_ti_dump
+       ; heap    = initial_heap
+       ; globals = globals_map
+       ; stats   = ti_stat_initial
       })
   | None ->
     Left "No main in program"

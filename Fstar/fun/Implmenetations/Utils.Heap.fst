@@ -35,7 +35,7 @@ let alloc #a {size; free; maps_to} v =
 
 val update (#a : Type) : t a -> int -> a -> t a
 let update #a heap key val' =
-  {heap with maps_to = Map.update key val'  heap.maps_to}
+  {heap with maps_to = Map.update key val' heap.maps_to}
 
 val h_free (#a : Type) : t a -> int -> t a
 let h_free #a {size; free; maps_to} key = {
