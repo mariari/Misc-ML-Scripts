@@ -304,15 +304,20 @@ let rec rev_inject l1 l2 =
   match l1, l2 with
   | [], [] -> ()
   | h1 :: t1, h2 :: t2 ->
-    // (1) snoc_inject gives us snoc (reverse t1) h1 == snoc (reverse t2) h2
+    // reverse l1 = append (reverse t1) [hd1] = snoc (reverse t1) h1
+    // reverse l2 = append (reverse t2) [hd2] = snoc (reverse t2) h2
+    // (1) snoc_inject gives us
+    // snoc (reverse t1) h1 == snoc (reverse t2) h2
+    // ===> reverse t1 == reverse t2 /\ h1 == h2
     snoc_inject (reverse t1) h1 (reverse t2) h2;
-    // (2) by induction hypothesis reverse t1 = reverse t2
+    // (2) by induction hypothesis
+    // reverse t1 == reverse t2 ===> t1 == t2
     rev_inject t1 t2
-    // reverse h1 :: t1, reverse h2 t2
-    // =def= reverse (snoc (reverse t1) h1), reverse (snoc (reverse t2) h2)
-    // (2) reverse t1 = reverse t2
-    // (1) snoc (reverse t1) h1 == snoc (reverse t2) h2
-    // =def=  reverse l1 = reverse l2
+    // reverse (h1 :: t1), reverse (h2 :: t2)
+    // =def= snoc (reverse t1) h1, snoc (reverse t2) h2
+    // (1) reverse t1 == reverse t2 /\ h1 == h2
+    // (2) t1 == t2
+    // ∴ h1 :: t1 == h2 :: t2
 
 val map : ('a -> 'b) -> list 'a -> list 'b
 let rec map f l = match l with
