@@ -74,7 +74,7 @@ let rec remove_excess = function
 class ['a] set list = object(s)
   inherit ['a] bag (remove_excess list)
   (* Again ugly hack to get around escaping *)
-  method private construct = new set
+  method private create = new set
 end
 
 (* we can see the interface agrees with the implementation *)
@@ -97,7 +97,7 @@ let set_foo =
 (* val bag_foo : (string * int) list * (string * int) list =
  *   ([("a", 6); ("b", 8)], [("a", 6); ("b", 8)])
  * val set_foo : (string * int) list * (string * int) list =
- *   ([("a", 2); ("b", 2)], [("a", 2); ("b", 2)]) *)
+ *   ([("a", 2); ("b", 2)], [("a", 1); ("b", 1)]) *)
 
 
 (* appendex A unneeded *)
