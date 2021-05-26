@@ -93,6 +93,13 @@ let set_foo =
   (set#foo_fast set)#to_list, (set#foo set)#to_list
 
 
+(* Output *)
+(* val bag_foo : (string * int) list * (string * int) list =
+ *   ([("a", 6); ("b", 8)], [("a", 6); ("b", 8)])
+ * val set_foo : (string * int) list * (string * int) list =
+ *   ([("a", 2); ("b", 2)], [("a", 2); ("b", 2)]) *)
+
+
 (* appendex A unneeded *)
 
 (* A set is a bag, but  *)
