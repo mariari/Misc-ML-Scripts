@@ -25,6 +25,9 @@ class ['a] bag list = object(s)
   method to_list = s#state
 
   (* hack to get around self types not escaping *)
+  (* You normally don't make this kind of constructor in normal
+     mutative or even pure OO code, so we will not use it for our foo
+     example. *)
   method private create = new bag
 
   method insert input =
@@ -35,7 +38,7 @@ class ['a] bag list = object(s)
          x :: add_to_counter xs
       | [] ->
          [input, 1]
-    in new bag (add_to_counter s#to_list)
+    in s#create (add_to_counter s#to_list)
 
   method lookup to_find =
     let rec lookup = function
