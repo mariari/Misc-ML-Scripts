@@ -17,8 +17,24 @@ let rec repeat n f acc =
   | 0 -> acc
   | n -> repeat (pred n) f (f acc)
 
+(* This signature is 100% optional, taken from the OCaml REPL *)
+class type ['a] signature =
+  object
+    (* Excluding this actually changes the late binding behavior! *)
+    method private create : ('a * int) list -> 'a signature
+    method to_list : ('a * int) list
+    method insert  : 'a -> 'a signature
+    method lookup  : 'a -> ('a * int) option
+    method append  : 'a signature -> 'a signature
+    (* Notice how these signatures are the same! *)
+    method foo      : 'a signature -> 'a signature
+    method foo_fast : 'a signature -> 'a signature
+  end
+
+
+
 (* A bag is implemented as a list of tuples, the simplest implementation *)
-class ['a] bag list = object(s)
+class ['a] bag list : ['a] signature = object(s)
 
   method private state : ('a * int) list = list
 
@@ -71,7 +87,7 @@ let rec remove_excess = function
   | [] -> []
 
 (* A set is a bag, but, we only have 1 element, not n  *)
-class ['a] set list = object(s)
+class ['a] set list : ['a] signature = object(s)
   inherit ['a] bag (remove_excess list)
   (* Again ugly hack to get around escaping *)
   method private create = new set
