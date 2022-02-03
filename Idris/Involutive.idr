@@ -1,6 +1,5 @@
 module Involutive
 
-
 data MyList : Type -> Type where
   Nil : MyList elem
   (::) : elem -> MyList elem -> MyList elem
@@ -22,7 +21,6 @@ snoc_cons (x :: xs) h =
   let foo = snoc_cons xs h in
   rewrite foo in
   Refl
-
 
 rev_involutive : (l : List a) -> rev (rev l) = l
 rev_involutive Nil = Refl

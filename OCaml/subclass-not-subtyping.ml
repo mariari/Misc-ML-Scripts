@@ -1,4 +1,4 @@
-(** fundimental point *)
+(** fundamental point *)
 (* OO does not distinguish between these two signature wise *)
 
 (* sig foo : ∀ x,y :> bag. x -> y -> x
@@ -30,7 +30,6 @@ class type ['a] signature =
     method foo      : 'a signature -> 'a signature
     method foo_fast : 'a signature -> 'a signature
   end
-
 
 
 (* A bag is implemented as a list of tuples, the simplest implementation *)
