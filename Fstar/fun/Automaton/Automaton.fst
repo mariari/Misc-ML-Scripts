@@ -75,19 +75,19 @@ let test = run_n_times 10 default_spot [Left; Up]
 
 (* TODO ∷ learn to abstract this logic into 1 call, via tactics? *)
 
-let generate_logic f : Tac unit =
-  let xs = intro () in
-  let s  = intro () in
-  let test =
-  `(match (`#xs) with
-    | [] -> ()
-    | Up    :: xs -> (`@f) xs (app_inst (`#s) Up)
-    | Down  :: xs -> (`@f) xs (app_inst (`#s) Down)
-    | Left  :: xs -> (`@f) xs (app_inst (`#s) Left)
-    | Right :: xs -> (`@f) xs (app_inst (`#s) Right)
-  )
-  in
-  apply test
+// let generate_logic f : Tac unit =
+//   let xs = intro () in
+//   let s  = intro () in
+//   let test =
+//   `(match (`#xs) with
+//     | [] -> ()
+//     | Up    :: xs -> (`@f) xs (app_inst (`#s) Up)
+//     | Down  :: xs -> (`@f) xs (app_inst (`#s) Down)
+//     | Left  :: xs -> (`@f) xs (app_inst (`#s) Left)
+//     | Right :: xs -> (`@f) xs (app_inst (`#s) Right)
+//   )
+//   in
+//   apply test
 
 let generate_logic' f (xs : move_set) (s : base_state) : Tac unit =
   let test =
@@ -109,18 +109,18 @@ let generate_logic' f (xs : move_set) (s : base_state) : Tac unit =
   //     exact te
 
 
-val y_relationship : xs : move_set
-                   → s  : base_state
-                   → Lemma (snd s.spot + (right xs - left xs) == (snd (run s xs).spot))
-let rec y_relationship xs s = _ by (generate_logic' y_relationship xs s)
-
 // val y_relationship : xs : move_set
 //                    → s  : base_state
 //                    → Lemma (snd s.spot + (right xs - left xs) == (snd (run s xs).spot))
-// let rec y_relationship xs s =
-//   match xs with
-//   | []      -> ()
-//   | x  :: xs -> y_relationship xs (app_inst s x)
+// let rec y_relationship xs s = _ by (generate_logic' y_relationship xs s)
+
+val y_relationship : xs : move_set
+                   → s  : base_state
+                   → Lemma (snd s.spot + (right xs - left xs) == (snd (run s xs).spot))
+let rec y_relationship xs s =
+  match xs with
+  | []      -> ()
+  | x  :: xs -> y_relationship xs (app_inst s x)
 
 val x_relationship : xs : move_set
                    → s  : base_state
@@ -168,7 +168,8 @@ let proof_unbounded xs s =
   match xs with
   | x :: xs ->
     y_relationship xs (app_inst s x);
-    x_relationship xs (app_inst s x)
+    // x_relationship xs (app_inst s x);
+    _ by ()
 
 val spot_at_zero_relation : xs : move_set{inequal_move xs}
                          → Lemma (spot_to_nat (run default_spot xs) > 0)
