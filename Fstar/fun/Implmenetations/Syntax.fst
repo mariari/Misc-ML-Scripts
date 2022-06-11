@@ -14,7 +14,7 @@ type expr (a : Type u#a) : Type u#a =
   | ELam    : args:list a → expr a            → expr a
   | ECase   : statement:expr a → list (alter a) → expr a
 
-and alter (b : Type u#b) : Type u#b =
+and alter (b : Type u#a) : Type u#a =
   | Alt : int → list string -> expr b -> alter b
 
 type core_expr = expr string

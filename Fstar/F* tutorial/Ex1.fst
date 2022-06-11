@@ -61,7 +61,6 @@ let dynamicChecking () =
   checkedWrite tmp "hello!";
   checkedWrite passwd "junk" (* this raises exception *)
 
-
 val is_positive : int -> Tot bool
 let is_positive i = i > 0
 

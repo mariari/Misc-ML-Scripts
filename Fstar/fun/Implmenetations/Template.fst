@@ -26,7 +26,7 @@ val mult_zero_start : n:nat → d:nat
                     → Lemma (mult_start n d == (n,d,0,0))
 let mult_zero_start n d = ()
 
-val step_mult : (x : mult_state{not (mult_final x)}) -> Tot (y : mult_state)
+val step_mult : (x : mult_state{not (mult_final x)}) -> Tot mult_state
 let step_mult = function
   | (n, m, d, t) ->
     (match d with
@@ -46,7 +46,8 @@ let first = function
 
 val eval_mult : (x : mult_state)
               → Tot (list mult_state)
-                    (decreases (LexCons (second x) (LexCons (third x) LexTop)))
+                     (decreases %[second x; third x])
+                     // (decreases (LexCons (second x) (LexCons (third x) LexTop)))
 let rec eval_mult state =
   if mult_final state
   then [state]
@@ -75,7 +76,7 @@ let rec eval_mult_mults_current state =
   | false → eval_mult_mults_current (step_mult state)
 
 
-val eval_mult_is_mult : n:nat
+rval eval_mult_is_mult : n:nat
                       → d:nat
                       → Lemma (fourth (List.Tot.last (eval_mult (mult_start n d))) == op_Multiply n d)
 let eval_mult_is_mult n d = eval_mult_mults_current (mult_start n d)
@@ -123,7 +124,7 @@ type ti_globals = Map.ordmap name Utils.addr (string_cmp_total (); string_cmp)
 // -----------------------------------------------------------------------------
 // ti_stats
 // -----------------------------------------------------------------------------
-abstract type ti_stats = int
+type ti_stats = int
 
 val ti_stat_initial : ti_stats
 let ti_stat_initial = 0

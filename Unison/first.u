@@ -1,0 +1,42 @@
+
+> quicksort [1, 35, 1, 2, 342, 12, 23, 35]
+
+--- Asking Unison to edit the function with `edit quicksort'
+
+quicksort : [Nat] -> [Nat]
+quicksort = cases
+  []      -> List.empty
+  x +: xs ->
+    use List ++ +: filter
+    greater =
+      use Nat <
+      filter ((<) x) xs
+    lesser =
+      use Nat >
+      filter ((>) x) xs
+    equals =
+      use Nat ==
+      filter ((==) x) xs
+    quicksort lesser ++ (x +: equals) ++ quicksort greater
+
+---- Anything below this line is ignored by Unison.
+
+foo : Nat
+foo = 3 |> ((+) 2)
+
+quicksort : [Nat] -> [Nat]
+quicksort xs =
+  match xs with
+  []      -> List.empty
+  x +: xs ->
+    greater = List.filter ((Nat.<) x) xs
+    lesser  = List.filter ((Nat.>) x) xs
+    equals  = List.filter ((Nat.==) x) xs
+    quicksort lesser ++ (x +: equals) ++ quicksort greater
+
+---
+> 2 +: [3,2]
+
+> List.filter ((Nat.==) 3) [1,2,3]
+
+> 3 + 10

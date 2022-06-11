@@ -1,1 +1,11 @@
 *.~
+*.*~
+*.checked
+*#*#
+*.hints
+*.agdai
+*.ibc
+*.fasl
+*.o
+*.cmi
+*.cmx

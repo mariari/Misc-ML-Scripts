@@ -1,5 +1,7 @@
 module Fun
 
+import PrintF
+
 str_index' : (i : Nat) -> (s : String) -> {auto p : LT i (length s)} -> Char
 str_index' i s {p} = assert_total $ prim__strIndex s (toIntNat i)
 
@@ -18,6 +20,9 @@ testS s =
     No _ =>
       print "sad"
 
+
+test' : String
+test' = PrintF.formatF "%i how do you do %s" 3 "d"
 
 test : IO ()
 test = do

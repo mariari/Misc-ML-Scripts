@@ -59,7 +59,7 @@ val step : exp -> Tot (option exp)
         match e1 with
         | ETrue   -> Some e2
         | EFalse  -> Some e3
-        | _       -> None
+        | EAbs _ _ _ -> None
       else
         (match (step e1) with
         | Some e1' -> Some (EIf e1' e2 e3)

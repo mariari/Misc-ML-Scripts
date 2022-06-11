@@ -1,0 +1,100 @@
+ls base.List
+view base.List.map
+view base.List.Map
+view quicksort
+show quicksort
+ls
+show quicksort
+edit quicksort
+update
+ls
+find *
+add
+find *
+find Equal
+find >
+find =
+find >
+help
+edit foo
+help
+find ++
+view ++
+view base.List.++
+view <
+view =
+view ==
+view base.List.map
+view base.List.foldLeft
+view base.List.filter
+view base.List.:+
+find base.List
+view base.List
+view base.List.init
+ls base.List
+view base.List.drop
+view at2
+view base.List.at2
+view base.List.tail
+view base.List.map
+view base.List.drop
+view base.List.take
+view base.List.splitAt
+ls base.List
+find [a] -> [a]
+search [a] -> [a]
+find [a] -> [a]
+find [a] -> [a
+ls base.List
+ls base.List.rest
+view base.List.rest
+view base.List.cdr
+view base.List.at
+names List
+find base.List.at
+view base.List.at
+view base.List.map
+view base.List.at
+view base.List.foldLeft
+view base.List.count
+view base.List.empty
+ls base.List
+view base.List
+find List
+?
+|> 3 + 5
+?
+> 2
+>. 2
+> 2 + 5
+> 3 + 5
+find dhall.evaluate
+view dhall.evaluate
+view dhall.DhallValue.DhallBoolean
+find dhall.DhallValue.DhallBoolean
+ls dhall.DhallValue
+ls dhall
+ls 
+pull https://github.com/unisonweb/share:.hagl.dhall .dhall
+http://127.0.0.1:38995/1ld4GablF6v1sgUD/ui
+ls base.Map
+ls base.Map/
+ls base.Multimap
+ls base
+ls base.List.takeWhile.tests
+ls base.List.takeWhile
+ls base.List.ZipWith.
+ls base.List.ZipWith
+ls base.List.ZipWith/
+ls base.List
+ls base.Doc
+ls base/Doc
+ls base
+ls base.Int
+ls base
+ls base/
+ls foo
+ui
+ls
+push
+help

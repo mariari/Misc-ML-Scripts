@@ -1,5 +1,6 @@
 module PrintF
 
+%access public export
 
 data Formatting
   = FInt    Formatting
@@ -10,10 +11,10 @@ data Formatting
 %default total
 
 format : List Char -> Formatting
-format ('%' :: 'i' :: xs ) = FInt (format xs)
-format ('%' :: 's' :: xs ) = FString (format xs)
-format (x :: xs)           = FOther x (format xs)
-format []                  = FEnd
+format ('%' :: 'i' :: xs) = FInt (format xs)
+format ('%' :: 's' :: xs) = FString (format xs)
+format (x :: xs)          = FOther x (format xs)
+format []                 = FEnd
 
 -- Idris doesn't view this as total by default ☹
 -- format : List Char -> Formatting
@@ -28,7 +29,6 @@ format []                  = FEnd
 --   where
 --     other : List Char -> Formatting -> Formatting
 --     other zs z = FOther (pack zs) z
-
 
 interpFormat : Formatting -> Type
 interpFormat (FInt f)     = Int -> interpFormat f
@@ -47,7 +47,6 @@ formatF xs = rec (formatString xs) []
     rec (FString x)  st = \s => rec x (s :: st)
     rec (FOther x y) st =       rec y (singleton x :: st)
     rec FEnd         st =       foldr (++) "" (reverse st)
-
 
 test : String
 test = formatF "%i how do you do %s" 3 "d"

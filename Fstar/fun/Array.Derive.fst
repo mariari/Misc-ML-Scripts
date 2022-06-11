@@ -16,7 +16,7 @@ let heap = h:heap_rec{(forall (n:nat). n >= h.next_addr ==> None? (h.memory n))}
 
 
 // came from the monotonic_heap module
-private noeq type monref' (a:Type0) (rel:FStar.Preorder.preorder a) : Type0 = {
+private noeq type monref' (a:Type0) (rel:preorder a) : Type0 = {
   addr: (x: nat { x > 0 } );
   init: a;
   mm:   bool;  //manually managed flag
@@ -94,7 +94,7 @@ let as_ref #_ arr = arr
 let addr_of_arr (#a:Type0) (arr:array a) : GTot nat = addr_of (as_ref arr)
 
 
-// ST write, very cute, but very janky in how we exert things
+// // ST write, very cute, but very janky in how we exert things
 // abstract let write (#a:Type) (#rel:preorder a) (r:mref a rel) (v:a)
 //   : ST unit
 //     (fun h -> rel (sel h r) v)
