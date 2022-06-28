@@ -36,7 +36,6 @@ let rec subst x e e' =
   | EFalse -> EFalse
   | EIf e1 e2 e3 -> EIf (subst x e e1) (subst x e e2) (subst x e e3)
 
-
 val step : exp -> Tot (option exp)
   let rec step e =
   match e with

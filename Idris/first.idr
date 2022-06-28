@@ -20,7 +20,6 @@ testS s =
     No _ =>
       print "sad"
 
-
 test' : String
 test' = PrintF.formatF "%i how do you do %s" 3 "d"
 
