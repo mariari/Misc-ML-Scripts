@@ -9,7 +9,7 @@ This directory contains a bunch of F^{★} work along with helpers
         the =turn-machine=
    2. =Implementations=
       - Working through Implementing Functional Languages: a
-        tutorial in F^*.
+        tutorial in F^{★}.
         + This books includes the =template-machine=, =G-machine=,
           =TIM-machine=, etc.
       - See the =README= in that directory for more information
@@ -24,4 +24,4 @@ This directory contains a bunch of F^{★} work along with helpers
      * *Probably* has to be in the same directory as the file, as F^{★}
        can be rather finicky with names.
      * This will also cache your standard library
-   + This makes F^* easier to use!
+   + This makes F^{★} easier to use!
