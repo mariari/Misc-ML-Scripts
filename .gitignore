@@ -1,7 +1,12 @@
 *.~
-*.*~
 *.checked
-*#*#
+.~
+\#*#
+.[#]*[#]
+*.*~
+*.fasl
+*.*fsl
+*.*fas
 *.hints
 *.agdai
 *.ibc

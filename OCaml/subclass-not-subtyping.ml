@@ -8,7 +8,7 @@
  * sig foo' : ∀ x,y :> bag. x -> y -> bag
  * let foo' bag1 bag2 =
  *   let newBag = new bag in
- *   (bag + bag1) + bag2 *)
+ *   newBag.append(bag1).append(bag2) *)
 
 (* http://okmij.org/ftp/Computation/Subtyping/ *)
 

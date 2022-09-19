@@ -13,6 +13,9 @@ This directory contains a bunch of F^{★} work along with helpers
         + This books includes the =template-machine=, =G-machine=,
           =TIM-machine=, etc.
       - See the =README= in that directory for more information
+   3. =Token=
+      - Implements a basic token system with burn, mint, and transfer
+        maintaining certain invariants.
 2. =Interopt/=
    + See the =README= for that folder
 3. =cache-fstar-source.lisp=

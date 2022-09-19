@@ -9,7 +9,6 @@ let my_arr =
   ignore (Array.index my_arr 0);
   my_arr
 
-
 let operation () =
   Array.index my_arr 0
 
