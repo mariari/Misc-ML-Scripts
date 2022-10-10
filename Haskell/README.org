@@ -4,14 +4,23 @@ This sub-directory isn't the /most/ interesting, however there may be
 gems if one is newer to the Haskell programming language.
 
 Some notable files are
-1. =Life.hs=
+1. =Sexp=
+   - This Includes a library which can automatically serialize and
+     =desearlize= Haskell code into S-expressions
+   - This provides a much better way to structure compilers than the
+     traditional ML style sum type as it's extensible and offers a
+     good serialization and abstraction mechanism
+2. =Standardlibrary=
+   - This includes a module which lets one trace their Haskell
+     programs.
+3. =Life.hs=
    - This is code adapted from a 5~ line APL program to
      simulate the life game
-2. =Free.hs=
+4. =Free.hs=
    - Playing and useage of the Free Monad
-3. =data-structures/=
+5. =data-structures/=
    - Various data structures made in Haskell
-4. =interesting-problems.hs=
+6. =interesting-problems.hs=
    - This file is for code solutions to small but interesting problems
-5. =Modern-compilers=
+7. =Modern-compilers=
    - A Haskell solution to "Modern Compilers in ML"
