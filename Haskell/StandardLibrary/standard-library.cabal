@@ -1,0 +1,159 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.35.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           standard-library
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/StandardLibrary#readme>
+homepage:       https://github.com/mariari/Misc-ML-Scripts
+bug-reports:    https://github.com/mariari/Misc-ML-Scripts/issues
+author:         Mariari <mariari@protonmail.ch>
+maintainer:     Mariari <mariari@protonmail.ch>
+copyright:      2022 Mariari
+license:        GPL-3
+license-file:   LICENSE
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/mariari/Misc-ML-Scripts
+
+flag incomplete-error
+  description: Incomplete patterns, missing record fields, and missing class methods are an error
+
+  manual: True
+  default: False
+
+library
+  exposed-modules:
+      Mari.Library
+      Mari.Library.HashMap
+      Mari.Library.LineNum
+      Mari.Library.NameSymbol
+      Mari.Library.Parser
+      Mari.Library.Parser.Internal
+      Mari.Library.Parser.Lexer
+      Mari.Library.Parser.Token
+      Mari.Library.PrettyPrint
+      Mari.Library.Trace
+      Mari.Library.Trace.Environment
+      Mari.Library.Trace.Format
+      Mari.Library.Trace.Types
+      Mari.Library.Usage
+  other-modules:
+      Paths_standard_library
+  hs-source-dirs:
+      src
+  default-extensions:
+      BlockArguments
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      LambdaCase
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeSynonymInstances
+      KindSignatures
+      DefaultSignatures
+      DeriveDataTypeable
+      FunctionalDependencies
+  ghc-options: -ferror-spans -Wall -fno-warn-orphans -fno-warn-name-shadowing -fno-warn-missing-pattern-synonym-signatures -j -static -fwrite-ide-info
+  build-depends:
+      aeson
+    , base >=4.11 && <5
+    , bytestring
+    , capability
+    , containers
+    , directory
+    , filepath
+    , generic-lens
+    , lens
+    , lens-aeson
+    , megaparsec
+    , mtl
+    , pretty-compact
+    , pretty-simple
+    , protolude
+    , scientific
+    , tasty
+    , tasty-silver
+    , text
+    , time
+    , unordered-containers
+    , word8
+    , wreq
+  default-language: Haskell2010
+  if flag(incomplete-error)
+    ghc-options: -Werror=incomplete-patterns -Werror=missing-fields -Werror=missing-methods
+
+test-suite standard-library-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Golden
+      NameSymb
+      Pretty
+      Trace
+      Paths_standard_library
+  hs-source-dirs:
+      test
+  default-extensions:
+      BlockArguments
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      LambdaCase
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeSynonymInstances
+      KindSignatures
+      DefaultSignatures
+      DeriveDataTypeable
+      FunctionalDependencies
+  ghc-options: -ferror-spans -Wall -fno-warn-orphans -fno-warn-name-shadowing -fno-warn-missing-pattern-synonym-signatures -j -static -fwrite-ide-info -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.11 && <5
+    , bytestring
+    , capability
+    , containers
+    , directory
+    , filepath
+    , generic-lens
+    , lens
+    , lens-aeson
+    , megaparsec
+    , mtl
+    , pretty-compact
+    , pretty-simple
+    , protolude
+    , scientific
+    , standard-library
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , tasty-silver
+    , text
+    , time
+    , unordered-containers
+    , word8
+    , wreq
+  default-language: Haskell2010
+  if flag(incomplete-error)
+    ghc-options: -Werror=incomplete-patterns -Werror=missing-fields -Werror=missing-methods

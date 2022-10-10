@@ -70,7 +70,6 @@ isBalanced = isJust . depth 0
     depth i (Node _) = Just i
     depth i Empty    = Just i
 
-
 splitWith :: (a -> Bool) -> [a] -> ([a], [a])
 splitWith p xs = recurse [] xs
   where
