@@ -4,13 +4,17 @@
 Some notable files are
 1. =interp.ml=
    - a mini interpreter in OCaml
-2. =nameless.ml=
+2. =berlin-pipeline.mli=
+   - This is a compiler architecture mock-up.
+   - A real version will be given in Haskell for those curious, I just
+     have to unbitrot it
+3. =nameless.ml=
    - Implements da brujin indices
-3. =nameless-boehm-beraducci.ml=
+4. =nameless-boehm-beraducci.ml=
    - Reimplements nameless, but using rank 2 F_ω
-4. =nameless-final-first.ml=
+5. =nameless-final-first.ml=
    - tries to do nameless-bb again but this time with module functors,
      this is the first flawed attempt
-5. =utilities.ml=
+6. =utilities.ml=
    - This has a few functions which may be useful to whomever reads this.
 
