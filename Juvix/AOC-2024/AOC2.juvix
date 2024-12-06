@@ -1008,6 +1008,10 @@ input : List (List Int) :=
 
 part1 : Nat := filter level-ok? input |> length;
 
+part2 : Nat :=
+  filter λ{xs := level-ok? xs || any level-ok? (drop-once-for-all xs)} input
+    |> length;
+
 level-ok? : List Int -> Bool
   | xs := monotonic? xs && max-difference xs < 4 && min-difference xs > 0;
 
@@ -1025,6 +1029,15 @@ max-difference : List Int -> Nat
 
 min-difference : List Int -> Nat
   | xs := difference-gen (<=) xs;
+
+drop-once-for-all {A} : List A -> List (List A)
+  | xs :=
+    let
+      rec : List A -> Pair (List A) (List (List A)) -> List (List A)
+        | [] (_, acc) := acc
+        | (y :: ys) (earlier, acc) :=
+          rec ys (y :: earlier, (reverse earlier ++ ys) :: acc);
+    in rec xs ([], []);
 
 ----------------------------------------------------------------------
 -- Helper general functions
